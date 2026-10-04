@@ -1,6 +1,6 @@
 # Boom Boom Busta rules
 
-Status: draft, waiting on the owner's approval of the Influence and Truth Teller and Liar sections.
+Status: the Influence section is a draft waiting on the owner; everything else is agreed.
 The base game follows Two Rooms and a Boom, with our own names.
 
 ## Players and cards
@@ -8,9 +8,15 @@ The base game follows Two Rooms and a Boom, with our own names.
 - 6 to 30 players.
 - Blue team protects **the Boss**.
   Red team wants **the Busta** to end the game in the same room as the Boss.
-- Everyone else is Blue Crew or Red Crew, split evenly.
-- With an odd number of players, one player is **the Bookie** (no team).
-  Before the last hostage exchange, the Bookie calls which team will win, and wins if the call is right.
+- The host picks which special cards are in the deck, in the lobby, before any game; any mix is allowed whatever the player count.
+  Everyone in the lobby sees which special cards are turned on.
+- Dealing: the Boss and the Busta are always dealt.
+  If more special cards are turned on than there are other seats, the app picks which ones at random.
+  Every seat left after that gets Blue Crew or Red Crew.
+- Teams are kept as even as possible: a special card that can be on either team goes to the smaller team (random on a tie), and Crew cards fill the rest.
+  When the teams can't be equal, the extra player goes to a random team.
+- Special cards: **the Bookie** (no team, on by default), **the Truth Teller** and **the Liar** (either team, off by default).
+- The Bookie calls which team will win before the last hostage exchange, and wins if the call is right.
 - Every player sees only their own card.
 
 ## Rooms
@@ -67,11 +73,10 @@ Influence can't be traded or given to other players.
 - **Demand card** (4): one player in your room must show you their whole card; you show nothing back.
 - Unspent Influence is worth nothing at the end.
 
-## Truth Teller and Liar (new, host can turn them off)
+## Truth Teller and Liar
 
-- Games with 8 or more players can add **the Truth Teller** and **the Liar**.
-- Each one's team is picked at random (Red or Blue), and each replaces one Crew card of that team, so the teams stay even.
+- Each one is on Red or Blue, decided when the cards are dealt (see Dealing); the card shows its team color.
 - The Truth Teller must say only true things for the whole game.
   The Liar must say only false things for the whole game.
 - Speech is on the honor system; the app reminds them of their rule on their card.
-- Shares and demands always show the truth, so someone who has seen a Liar's card knows to flip everything that player says.
+- Shares and reveals always show the truth, so someone who has seen a Liar's card knows to flip everything that player says.
