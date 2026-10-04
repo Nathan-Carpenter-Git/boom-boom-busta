@@ -41,7 +41,7 @@ export interface RoomView {
 export interface ResultsView {
   winner: WinningTeam;
   /** Every player's card, revealed at the end. */
-  cards: { id: string; card: CardId }[];
+  cards: { id: string; card: CardId; team: Team }[];
   bookie: { id: string; call: WinningTeam | null; won: boolean } | null;
 }
 
@@ -69,14 +69,20 @@ export interface GameView {
   results: ResultsView | null;
 }
 
+export interface LobbySettings {
+  /** Special cards the host turned on, in display order; dealt at random when they outnumber the seats. */
+  specials: CardId[];
+}
+
 export interface LobbyView {
   code: string;
   hostId: string;
   phase: "lobby" | "game";
   minPlayers: number;
   players: PlayerView[];
+  settings: LobbySettings;
   /** Your own card and current room once cards are dealt; nobody else's card is sent unless you earned it. */
-  you: { card: CardId; room: RoomIndex } | null;
+  you: { card: CardId; team: Team; room: RoomIndex } | null;
   game: GameView | null;
 }
 
@@ -95,6 +101,7 @@ export type ClientMessage =
   | { type: "resume"; code: string; playerId: string; token: string }
   | { type: "leave" }
   | { type: "kick"; playerId: string }
+  | { type: "setSpecial"; card: CardId; on: boolean }
   | { type: "deal" }
   | { type: "act"; action: GameAction }
   | { type: "backToLobby" };
