@@ -5,9 +5,10 @@ A browser version of Two Rooms and a Boom with our own cards and art: two teams 
 New cards add more bluffing and social manipulation than the original.
 
 ## Now
-- Special cards merged; Influence waits on the owner.
+- Worker `influence` builds Influence (lobby switch, Campaign, Demand color, Demand card).
 
 ## Next
+- Review and merge `work/influence`.
 - After the owner approves RULES.md: build Influence, then the Truth Teller and Liar.
 - Render deploy once the owner connects the repo (render.yaml is ready).
 
@@ -19,6 +20,7 @@ New cards add more bluffing and social manipulation than the original.
 - 2026-10-03: project created from the agent-kit game template.
 
 ## Decisions
+- 2026-10-04: Influence agreed: lobby switch (off by default), 2 at start and +1 in rounds 2 and 3, Campaign 1 (never for yourself), Demand color 2, Demand card 4, no Shield.
 - 2026-10-04: the host turns any special cards on in any mix, whatever the player count; extras are dealt at random; either-team specials balance teams. Truth Teller and Liar approved.
 - 2026-10-04: a player who leaves mid-game keeps their card in play (can still be sent as a hostage); a departed leader triggers a re-vote.
 - 2026-10-04: owner picked Influence (option A) and said it can't be traded; added Truth Teller and Liar cards (either team). Bluff and leader power ideas are dropped.
@@ -29,5 +31,4 @@ New cards add more bluffing and social manipulation than the original.
 
 ## Open questions
 - Do players sit in two real rooms with phones as cards, or play fully online over voice (in-app room chat, or two Discord voice channels)?
-- Influence costs in RULES.md (start 2, +1 a round; Campaign 1, Shield 2, Demand color 2, Demand card 4): approved? Should it be a host toggle too?
 - Should pushes to `main` auto-deploy on Render (if so, switch to branches and pull requests)?
