@@ -18,7 +18,7 @@ Record the choices under `## Decisions` in STATE.md.
 - Dev server: `npm run dev` (game server on 8080 with `tsx watch`, Vite client on 5173 proxying `/ws`).
   `MIN_PLAYERS=2 npm run dev` lowers the six player minimum for local testing.
   `ROUND_SECONDS_SCALE=0.1 npm run dev` multiplies every game timer (leader vote, rounds, hostages moving), so a whole game takes about a minute.
-- Multiplayer screenshots: `make play` builds, then plays a short game with six phone-size Chromium pages (`tools/play-game.ts`, `PLAYERS=7` adds the Bookie) and saves every screen to `build/play/`.
+- Multiplayer screenshots: `make play` builds, then plays a short game with six phone-size Chromium pages (`tools/play-game.ts`, `PLAYERS=7` adds the Bookie), with the special cards and Influence on, and saves every screen to `build/play/`.
 - Everything before a merge: `make check` (Biome lint, Vitest, production build, phone capture).
 - Format: `npm run format`.
 - Card gallery for art review: open `/?cards`.
