@@ -75,6 +75,27 @@ describe("lobby", () => {
     expect(lobbies.view(lobby, guest).settings.specials).toEqual(["truth-teller", "liar"]);
   });
 
+  it("lets only the host turn Influence on, between games, and keeps it from game to game", () => {
+    const { lobbies, lobby, host } = fullLobby(6);
+    const guest = lobby.players[1].id;
+    expect(lobbies.view(lobby, guest).settings.influence).toBe(false);
+    expect(() => lobbies.setInfluence(lobby, guest, true)).toThrow("Only the host");
+    expect(lobbies.view(lobby, guest).settings.influence).toBe(false);
+    lobbies.setInfluence(lobby, host.id, true);
+    expect(lobbies.view(lobby, guest).settings.influence).toBe(true);
+
+    lobbies.deal(lobby, host.id);
+    expect(lobby.game?.influence).toBe(true);
+    expect(lobbies.view(lobby, guest).game?.influence?.[guest]).toBe(2);
+    expect(() => lobbies.setInfluence(lobby, host.id, false)).toThrow("between games");
+    lobbies.backToLobby(lobby, host.id);
+    expect(lobbies.view(lobby, guest).settings.influence).toBe(true);
+    lobbies.setInfluence(lobby, host.id, false);
+    lobbies.deal(lobby, host.id);
+    expect(lobbies.view(lobby, guest).game?.influence).toBeNull();
+    expect(() => lobbies.act(lobby, guest, { type: "campaign", for: host.id })).toThrow(LobbyError);
+  });
+
   it("deals every turned on special card, with each player's own team", () => {
     const { lobbies, lobby, host } = fullLobby(6);
     for (const id of SPECIAL_CARDS) lobbies.setSpecial(lobby, host.id, id, true);
@@ -142,6 +163,7 @@ describe("a whole game through the lobby manager", () => {
     const lobbies = new LobbyManager(6, { timeScale: 0.01 });
     const { lobby, host, inbox } = fullLobby(7, lobbies);
     for (const id of SPECIAL_CARDS) lobbies.setSpecial(lobby, host.id, id, true);
+    lobbies.setInfluence(lobby, host.id, true);
     inbox.set(host.id, []);
     host.send = (m) => inbox.get(host.id)?.push(m);
     lobbies.deal(lobby, host.id);
@@ -202,6 +224,24 @@ describe("a whole game through the lobby manager", () => {
       const revealer = room(1)[round % room(1).length];
       for (const id of room(1)) if (id !== revealer) grant(id, revealer, "card");
       act(revealer, { type: "reveal" });
+
+      // Influence: a color demand in round 1, a card demand in round 3 (4 saved up), never shown back.
+      const [d, e] = room(1);
+      if (round === 0) {
+        grant(d, e, "team");
+        act(d, { type: "demand", target: e, kind: "color" });
+      }
+      if (round === 2) {
+        // Someone in The Basement who never campaigned (the leader there is never sent, so never a campaigner).
+        const g = game.leaders[0] ?? "";
+        const f = room(0).find((id) => id !== g && entitled.get(`${g}>${id}`) !== "card") ?? "";
+        expect(game.player(g).influence).toBe(4);
+        grant(g, f, "card");
+        act(g, { type: "demand", target: f, kind: "card" });
+        expect(lobbies.view(lobby, a).game?.spends.at(-1)).toEqual({ by: g, target: f, kind: "card" });
+        expect(lobbies.view(lobby, d).game?.spends.some((s) => s.by === g)).toBe(false);
+      }
+      act(e, { type: "campaign", for: d });
       const bookie = game.players.find((p) => p.card === "bookie");
       if (round === 2 && bookie) act(bookie.id, { type: "bookieCall", team: "red" });
       act(game.leaders[0] ?? "", { type: "pickHostage", playerId: room(0)[1] });

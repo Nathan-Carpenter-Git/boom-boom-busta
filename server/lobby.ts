@@ -65,7 +65,7 @@ export class LobbyManager {
       hostId: player.id,
       phase: "lobby",
       players: [player],
-      settings: { specials: [...DEFAULT_SPECIALS] },
+      settings: { specials: [...DEFAULT_SPECIALS], influence: false },
       game: null,
     };
     this.lobbies.set(code, lobby);
@@ -140,6 +140,13 @@ export class LobbyManager {
     lobby.settings.specials = cleanSpecials(on === true ? [...rest, card] : rest);
   }
 
+  /** Turns Influence on or off for the next game; host only, and not mid-game. */
+  setInfluence(lobby: Lobby, byId: string, on: boolean): void {
+    this.requireHost(lobby, byId);
+    if (lobby.phase !== "lobby") throw new LobbyError("Change the rules between games");
+    lobby.settings.influence = on === true;
+  }
+
   deal(lobby: Lobby, byId: string, random = Math.random): void {
     this.requireHost(lobby, byId);
     if (lobby.phase !== "lobby") throw new LobbyError("Cards are already dealt");
@@ -152,7 +159,7 @@ export class LobbyManager {
       ...deck[i],
       room: (i % 2) as RoomIndex,
     }));
-    lobby.game = new Game(seating, Date.now(), { random, ...this.options });
+    lobby.game = new Game(seating, Date.now(), { random, ...this.options, influence: lobby.settings.influence });
     lobby.phase = "game";
     this.schedule(lobby);
   }
@@ -181,7 +188,7 @@ export class LobbyManager {
       phase: lobby.phase,
       minPlayers: this.minPlayers,
       players: lobby.players.map((p) => ({ id: p.id, name: p.name, connected: p.send !== null })),
-      settings: { specials: [...lobby.settings.specials] },
+      settings: { specials: [...lobby.settings.specials], influence: lobby.settings.influence },
       you: me ? { card: me.card, team: me.team, room: me.room } : null,
       game: lobby.game ? lobby.game.view(forId, now) : null,
     };

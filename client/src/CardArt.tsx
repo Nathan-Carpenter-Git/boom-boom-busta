@@ -242,3 +242,18 @@ export function CardBack({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** The Influence token: a gold coin with a megaphone, used in the lobby switch and next to every count. */
+export function InfluenceCoin({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
+      <circle cx="20" cy="20" r="17" fill="#ffde59" stroke={INK} strokeWidth="3" />
+      <circle cx="20" cy="20" r="12" fill="none" stroke="#c99a17" strokeWidth="2" />
+      <polygon
+        points="20,9.5 23,16.5 30.5,17 24.8,22 26.5,29.5 20,25.5 13.5,29.5 15.2,22 9.5,17 17,16.5"
+        fill={INK}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

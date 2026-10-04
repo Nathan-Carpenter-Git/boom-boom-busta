@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { CARDS, type CardId, cardGoal, TEAM_LABEL, type Team } from "../../shared/cards";
-import type { GameAction, GameView, KnownInfo, LobbyView, ShareKind, ShareRequest } from "../../shared/protocol";
+import type { GameAction, GameView, KnownInfo, LobbyView, ShareKind, ShareRequest, Spend } from "../../shared/protocol";
 import { ROOM_NAMES, type RoomIndex } from "../../shared/rules";
-import { CardBack, CardFace } from "./CardArt";
+import { CardBack, CardFace, InfluenceCoin } from "./CardArt";
 import type { Connection } from "./connection";
 
 const ROOM_CLASS = ["basement", "rooftop"] as const;
@@ -47,11 +47,16 @@ export function GameScreen({ conn, lobby, game, me, card, team, room }: Props) {
         <Results {...props} />
       ) : (
         <>
-          <GameHeader game={game} room={room} />
+          <GameHeader game={game} room={room} influence={game.influence?.[me] ?? null} />
           {game.phase === "moving" ? (
             <Moving {...props} />
           ) : (
-            <Room {...props} connected={lobby.players} specials={lobby.settings.specials} />
+            <Room
+              {...props}
+              connected={lobby.players}
+              specials={lobby.settings.specials}
+              influenceOn={game.influence !== null}
+            />
           )}
         </>
       )}
@@ -85,7 +90,7 @@ export function GameScreen({ conn, lobby, game, me, card, team, room }: Props) {
   );
 }
 
-function GameHeader({ game, room }: { game: GameView; room: RoomIndex }) {
+function GameHeader({ game, room, influence }: { game: GameView; room: RoomIndex; influence: number | null }) {
   const seconds = useSecondsLeft(game);
   const plan = game.rounds[game.round];
   const sub =
@@ -101,11 +106,19 @@ function GameHeader({ game, room }: { game: GameView; room: RoomIndex }) {
         <div className="room-name">{ROOM_NAMES[room]}</div>
         <div className="label">{sub}</div>
       </div>
-      {seconds !== null && (
-        <div className={`timer${seconds <= 10 && game.phase === "round" ? " urgent" : ""}`} role="timer">
-          {clock(seconds)}
-        </div>
-      )}
+      <div className="head-side">
+        {seconds !== null && (
+          <div className={`timer${seconds <= 10 && game.phase === "round" ? " urgent" : ""}`} role="timer">
+            {clock(seconds)}
+          </div>
+        )}
+        {influence !== null && (
+          <div className="my-influence" title="Your Influence">
+            <InfluenceCoin className="coin" />
+            {influence} Influence
+          </div>
+        )}
+      </div>
     </header>
   );
 }
@@ -199,8 +212,9 @@ function Requests({ game, me, act, nameOf }: ScreenProps) {
 function Room({
   connected,
   specials,
+  influenceOn,
   ...props
-}: ScreenProps & { connected: LobbyView["players"]; specials: CardId[] }) {
+}: ScreenProps & { connected: LobbyView["players"]; specials: CardId[]; influenceOn: boolean }) {
   const { game, me, card, team, room, act, nameOf } = props;
   const [open, setOpen] = useState<string | null>(null);
   const { leader, players } = game.rooms[room];
@@ -209,7 +223,12 @@ function Room({
   const need = game.rounds[game.round].hostages;
   const online = (id: string) => connected.find((p) => p.id === id)?.connected ?? false;
   const goneIds = new Set(game.players.filter((p) => p.gone).map((p) => p.id));
-  const votesFor = (id: string) => Object.values(game.votes).filter((v) => v === id).length;
+  // A campaigning vote counts twice.
+  const votesFor = (id: string) =>
+    Object.entries(game.votes).reduce(
+      (sum, [voter, v]) => sum + (v === id ? (game.campaigns.includes(voter) ? 2 : 1) : 0),
+      0,
+    );
   const majority = Math.floor(players.filter((id) => !goneIds.has(id)).length / 2) + 1;
   const myVote = game.votes[me] ?? null;
   const sent = (to: string, kind: ShareKind): ShareRequest | undefined =>
@@ -289,8 +308,15 @@ function Room({
                   {hostage && <span className="tag hot">hostage</span>}
                   {gone && <span className="tag">left</span>}
                   {myVote === id && <span className="tag mine">your vote</span>}
+                  {game.campaigns.includes(id) && <span className="tag gold">campaigning</span>}
                 </span>
                 {votes > 0 && <span className="votes">{plural(votes, "vote")}</span>}
+                {game.influence && id in game.influence && (
+                  <span className="influence-count" title="Influence">
+                    <InfluenceCoin className="coin" />
+                    {game.influence[id]}
+                  </span>
+                )}
               </button>
               {amLeader && picking && id !== me && (
                 <button
@@ -328,6 +354,7 @@ function Room({
                         </button>
                       );
                     })}
+                  {influenceOn && id !== me && <SpendActions {...props} target={id} />}
                 </div>
               )}
             </li>
@@ -335,8 +362,9 @@ function Room({
         })}
       </ul>
 
+      {influenceOn && <SpendLog spends={game.spends} me={me} nameOf={nameOf} />}
       <Known known={game.known} nameOf={nameOf} />
-      <SpecialsInPlay specials={specials} />
+      <SpecialsInPlay specials={specials} influence={influenceOn} />
 
       <OtherRoom game={game} room={otherRoom(room)} nameOf={nameOf} />
     </div>
@@ -373,7 +401,7 @@ function cardLabel(card: CardId, team: Team): string {
 }
 
 /** The special cards the host turned on; not which ones were dealt. */
-function SpecialsInPlay({ specials }: { specials: CardId[] }) {
+function SpecialsInPlay({ specials, influence }: { specials: CardId[]; influence: boolean }) {
   return (
     <p className="specials-in-play">
       <span className="label">Special cards that may be in play:</span>{" "}
@@ -384,7 +412,87 @@ function SpecialsInPlay({ specials }: { specials: CardId[] }) {
               {CARDS[id].name.replace(/^The /, "")}
             </span>
           ))}
+      <br />
+      <span className="label">Influence:</span> <span className="chip">{influence ? "on" : "off"}</span>
     </p>
+  );
+}
+
+const SPENDS = [
+  { kind: "campaign", label: "Campaign", cost: 1 },
+  { kind: "color", label: "Demand color", cost: 2 },
+  { kind: "card", label: "Demand card", cost: 4 },
+] as const;
+
+/** Campaign and the two demands in a roommate's row menu; each needs a second tap, as Influence is gone once spent. */
+function SpendActions({ game, me, act, target }: ScreenProps & { target: string }) {
+  const [armed, setArmed] = useState<Spend["kind"] | null>(null);
+  const have = game.influence?.[me] ?? 0;
+  const known = game.known.find((k) => k.id === target);
+  const why = (kind: Spend["kind"], cost: number): string | null => {
+    if (kind === "campaign" && game.votes[me] === target && game.campaigns.includes(me)) return "campaigning";
+    if (kind === "color" && known) return "already known";
+    if (kind === "card" && known?.card) return "already known";
+    if (have < cost) return `you have ${have}`;
+    return null;
+  };
+  return (
+    <div className="spend-actions">
+      {SPENDS.map(({ kind, label, cost }) => {
+        const reason = why(kind, cost);
+        const confirming = armed === kind && !reason;
+        return (
+          <button
+            key={kind}
+            type="button"
+            className={`btn small ghost spend${confirming ? " armed" : ""}`}
+            aria-label={`${label} (${cost})`}
+            disabled={reason !== null}
+            onClick={() => {
+              if (!confirming) return setArmed(kind);
+              setArmed(null);
+              act(kind === "campaign" ? { type: "campaign", for: target } : { type: "demand", target, kind });
+            }}
+          >
+            <span>{label}</span>
+            <span className="spend-sub">
+              <InfluenceCoin className="coin" />
+              {confirming ? `${cost}, tap again` : (reason ?? cost)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function spendLine(spend: Spend, me: string, nameOf: (id: string) => string): string {
+  const by = spend.by === me ? "You" : nameOf(spend.by);
+  const target = spend.target === me ? "you" : nameOf(spend.target);
+  if (spend.kind === "campaign") return `${by} campaigned for ${target}`;
+  const whose = spend.target === me ? "your" : `${target}'s`;
+  return `${by} demanded ${whose} ${spend.kind}`;
+}
+
+/** Who spent Influence on what in this room this round; what a demand showed stays private. */
+function SpendLog({ spends, me, nameOf }: { spends: Spend[]; me: string; nameOf: (id: string) => string }) {
+  return (
+    <>
+      <h2>Influence spent this round</h2>
+      {spends.length === 0 ? (
+        <p className="hint left">Nobody has spent any yet. Tap a player to Campaign or Demand.</p>
+      ) : (
+        <ul className="spend-log">
+          {spends.map((s, i) => (
+            // The log only grows within a round, so the index is a stable key.
+            <li key={i}>
+              <InfluenceCoin className="coin" />
+              {spendLine(s, me, nameOf)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
 

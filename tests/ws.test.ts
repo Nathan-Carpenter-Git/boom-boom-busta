@@ -64,6 +64,11 @@ it("plays a whole short game over real sockets, with a reconnect mid-round", { t
   await guests[0].until((m) => m.type === "error" && m.message === "Only the host can do that");
   host.send({ type: "setSpecial", card: "liar", on: true });
   await Promise.all(guests.map((g) => g.view((l) => l.settings.specials.includes("liar"))));
+  // The same for Influence.
+  guests[1].send({ type: "setInfluence", on: true });
+  await guests[1].until((m) => m.type === "error" && m.message === "Only the host can do that");
+  host.send({ type: "setInfluence", on: true });
+  await Promise.all(guests.map((g) => g.view((l) => l.settings.influence)));
 
   host.send({ type: "deal" });
   const dealt = await Promise.all([host, ...guests].map((c) => c.view((l) => l.game?.phase === "vote")));
@@ -102,6 +107,21 @@ it("plays a whole short game over real sockets, with a reconnect mid-round", { t
     if (i === 1 || ids[i] === partner) continue;
     expect((await c.view()).game?.known).toEqual([]);
   }
+
+  // The partner spends 2 Influence on a color demand of the third roommate: only they learn, the room sees the spend.
+  const partnerClient = clients[ids.indexOf(partner)];
+  const third = guestRoom.find((id) => id !== ids[1] && id !== partner) ?? "";
+  partnerClient.send({ type: "act", action: { type: "demand", target: third, kind: "color" } });
+  const demanded = await partnerClient.view((l) => (l.game?.known.length ?? 0) > 1);
+  expect(demanded.game?.known).toContainEqual({ id: third, team: expect.any(String), via: "color demand" });
+  expect(demanded.game?.influence?.[partner]).toBe(0);
+  for (const id of [ids[1], third]) {
+    const seen = await clients[ids.indexOf(id)].view((l) => (l.game?.spends.length ?? 0) > 0);
+    expect(seen.game?.spends).toEqual([{ by: partner, target: third, kind: "color" }]);
+    expect(seen.game?.known.map((k) => k.id)).toEqual(id === ids[1] ? [partner] : []);
+  }
+  partnerClient.send({ type: "act", action: { type: "campaign", for: ids[1] } });
+  await partnerClient.until((m) => m.type === "error" && m.message.startsWith("That costs 1 Influence"));
 
   // A guest drops and comes back with their saved token, keeping the same card.
   const guestJoin = await guests[0].until((m) => m.type === "joined");

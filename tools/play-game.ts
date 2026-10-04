@@ -82,6 +82,8 @@ async function main() {
       await host.getByRole("switch", { name }).click();
       await pages[1].locator(".specials li.on", { hasText: name }).waitFor();
     }
+    await host.getByRole("switch", { name: "Influence" }).click();
+    await pages[1].locator(".specials li.on", { hasText: "Influence" }).waitFor();
     await shot(host, "0-lobby-host");
     await shot(pages[1], "0-lobby-guest");
     await host.getByRole("button", { name: "Deal cards" }).click();
@@ -120,6 +122,26 @@ async function main() {
     const row = asker.locator(".room-players li", { hasText: targetName }).locator(".row-main");
     if ((await asker.locator(".row-actions").count()) === 0) await row.click();
     await shot(asker, "3-round-known");
+
+    // Influence: the asker campaigns for the target, then the third roommate demands the asker's color.
+    const spend = async (page: Page, name: string, label: string) => {
+      const row = page.locator(".room-players li", { hasText: name });
+      if ((await row.locator(".spend-actions").count()) === 0) await row.locator(".row-main").click();
+      const button = row.getByRole("button", { name: label });
+      await button.click();
+      await row.locator(".btn.spend.armed").waitFor();
+      return button;
+    };
+    await (await spend(asker, targetName, "Campaign (1)")).click();
+    await asker.locator(".spend-log li").waitFor();
+    const thirdName = askerRoom.find((n) => n !== askerName && n !== targetName) ?? "";
+    const third = pages[NAMES.indexOf(thirdName)];
+    const demand = await spend(third, askerName, "Demand color (2)");
+    await shot(third, "3a-row-menu-spends");
+    await demand.click();
+    await third.locator(".known li", { hasText: askerName }).waitFor();
+    await target.locator(".spend-log li").nth(1).waitFor();
+    await shot(target, "3b-spend-log");
 
     for (let round = 0; round < 3; round++) {
       await host.getByText(`Round ${round + 1} of 3`).waitFor({ timeout: 60_000 });

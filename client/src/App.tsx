@@ -2,7 +2,7 @@ import { type FormEvent, useState } from "react";
 import { CARDS, type CardId, dealSummary, SPECIAL_CARDS, SPECIAL_RULES } from "../../shared/cards";
 import type { LobbyView } from "../../shared/protocol";
 import { MAX_NAME_LENGTH } from "../../shared/rules";
-import { CardBack, CardFace } from "./CardArt";
+import { CardBack, CardFace, InfluenceCoin } from "./CardArt";
 import { type Connection, useConnection } from "./connection";
 import { GameScreen } from "./Game";
 import { loadName, saveName } from "./session";
@@ -191,6 +191,7 @@ function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; 
         ))}
       </ul>
       <SpecialCards conn={conn} lobby={lobby} isHost={isHost} />
+      <InfluenceSetting conn={conn} lobby={lobby} isHost={isHost} />
 
       <p className="hint">
         {missing > 0
@@ -247,6 +248,36 @@ function SpecialCards({ conn, lobby, isHost }: { conn: Connection; lobby: LobbyV
         })}
       </ul>
       <p className="hint deal-summary">{dealSummary(count, specials)}</p>
+    </>
+  );
+}
+
+function InfluenceSetting({ conn, lobby, isHost }: { conn: Connection; lobby: LobbyView; isHost: boolean }) {
+  const on = lobby.settings.influence;
+  return (
+    <>
+      <h2>Extra rules</h2>
+      <ul className="specials">
+        <li className={on ? "on" : ""}>
+          <InfluenceCoin className="special-card influence-icon" />
+          <span className="special-text">
+            <strong>Influence</strong>
+            <span>Everyone gets 2 Influence, +1 a round, to Campaign or Demand a color or card.</span>
+          </span>
+          {isHost ? (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={on}
+              aria-label="Influence"
+              className="switch"
+              onClick={() => conn.send({ type: "setInfluence", on: !on })}
+            />
+          ) : (
+            <span className="tag">{on ? "on" : "off"}</span>
+          )}
+        </li>
+      </ul>
     </>
   );
 }
