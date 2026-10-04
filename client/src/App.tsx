@@ -1,9 +1,10 @@
 import { type FormEvent, useState } from "react";
-import { CARDS, type CardId, TEAM_LABEL } from "../../shared/cards";
+import { CARDS, type CardId } from "../../shared/cards";
 import type { LobbyView } from "../../shared/protocol";
-import { MAX_NAME_LENGTH, ROOM_NAMES } from "../../shared/rules";
+import { MAX_NAME_LENGTH } from "../../shared/rules";
 import { CardBack, CardFace } from "./CardArt";
 import { type Connection, useConnection } from "./connection";
+import { GameScreen } from "./Game";
 import { loadName, saveName } from "./session";
 
 const params = new URLSearchParams(location.search);
@@ -19,7 +20,16 @@ export function App() {
           {conn.error}
         </button>
       )}
-      {conn.lobby && conn.playerId ? (
+      {conn.lobby?.game && conn.lobby.you && conn.playerId ? (
+        <GameScreen
+          conn={conn}
+          lobby={conn.lobby}
+          game={conn.lobby.game}
+          me={conn.playerId}
+          card={conn.lobby.you.card}
+          room={conn.lobby.you.room}
+        />
+      ) : conn.lobby && conn.playerId ? (
         <LobbyScreen conn={conn} lobby={conn.lobby} me={conn.playerId} />
       ) : (
         <Home conn={conn} />
@@ -126,7 +136,6 @@ function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; 
   const [copied, setCopied] = useState(false);
   const isHost = lobby.hostId === me;
   const missing = Math.max(0, lobby.minPlayers - lobby.players.length);
-  const nameOf = (id: string) => lobby.players.find((p) => p.id === id)?.name ?? "?";
 
   const share = async () => {
     const link = inviteLink(lobby.code);
@@ -154,55 +163,44 @@ function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; 
         </button>
       </header>
 
-      {lobby.phase === "dealt" && lobby.you && lobby.rooms ? (
-        <Dealt lobby={lobby} card={lobby.you.card} room={lobby.you.room} rooms={lobby.rooms} nameOf={nameOf} />
-      ) : (
-        <>
-          <h2>
-            Players <span className="count">{lobby.players.length}</span>
-          </h2>
-          <ul className="players">
-            {lobby.players.map((p) => (
-              <li key={p.id} className={p.connected ? "" : "away"}>
-                <span className="avatar">{p.name.slice(0, 1).toUpperCase()}</span>
-                <span className="pname">
-                  {p.name}
-                  {p.id === me && <span className="tag">you</span>}
-                  {p.id === lobby.hostId && <span className="tag host">host</span>}
-                  {!p.connected && <span className="tag">reconnecting</span>}
-                </span>
-                {isHost && p.id !== me && (
-                  <button
-                    type="button"
-                    className="kick"
-                    aria-label={`Remove ${p.name}`}
-                    onClick={() => conn.send({ type: "kick", playerId: p.id })}
-                  >
-                    ✕
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-          <p className="hint">
-            {missing > 0
-              ? `Waiting for ${missing} more player${missing === 1 ? "" : "s"}. Share the code or the invite link.`
-              : isHost
-                ? "Everyone in? Deal the cards."
-                : "Waiting for the host to deal the cards."}
-          </p>
-        </>
-      )}
+      <h2>
+        Players <span className="count">{lobby.players.length}</span>
+      </h2>
+      <ul className="players">
+        {lobby.players.map((p) => (
+          <li key={p.id} className={p.connected ? "" : "away"}>
+            <span className="avatar">{p.name.slice(0, 1).toUpperCase()}</span>
+            <span className="pname">
+              {p.name}
+              {p.id === me && <span className="tag">you</span>}
+              {p.id === lobby.hostId && <span className="tag host">host</span>}
+              {!p.connected && <span className="tag">reconnecting</span>}
+            </span>
+            {isHost && p.id !== me && (
+              <button
+                type="button"
+                className="kick"
+                aria-label={`Remove ${p.name}`}
+                onClick={() => conn.send({ type: "kick", playerId: p.id })}
+              >
+                ✕
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="hint">
+        {missing > 0
+          ? `Waiting for ${missing} more player${missing === 1 ? "" : "s"}. Share the code or the invite link.`
+          : isHost
+            ? "Everyone in? Deal the cards."
+            : "Waiting for the host to deal the cards."}
+      </p>
 
       <footer className="lobby-actions">
-        {isHost && lobby.phase === "lobby" && (
+        {isHost && (
           <button type="button" className="btn hot" disabled={missing > 0} onClick={() => conn.send({ type: "deal" })}>
             Deal cards
-          </button>
-        )}
-        {isHost && lobby.phase === "dealt" && (
-          <button type="button" className="btn" onClick={() => conn.send({ type: "backToLobby" })}>
-            Back to lobby
           </button>
         )}
         <button type="button" className="btn ghost" onClick={() => conn.send({ type: "leave" })}>
@@ -210,42 +208,6 @@ function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; 
         </button>
       </footer>
     </section>
-  );
-}
-
-function Dealt({
-  card,
-  room,
-  rooms,
-  nameOf,
-}: {
-  lobby: LobbyView;
-  card: CardId;
-  room: 0 | 1;
-  rooms: [string[], string[]];
-  nameOf: (id: string) => string;
-}) {
-  const [shown, setShown] = useState(false);
-  const def = CARDS[card];
-  return (
-    <div className="dealt">
-      <p className="hint">Tap your card to peek. Keep it hidden from everyone else.</p>
-      <button type="button" className="card-button" onClick={() => setShown((s) => !s)}>
-        {shown ? <CardFace id={card} className="big-card" /> : <CardBack className="big-card" />}
-      </button>
-      {shown && (
-        <p className={`goal ${def.team}`}>
-          <strong>{TEAM_LABEL[def.team]}.</strong> {def.goal}
-        </p>
-      )}
-      <h2>You start in {ROOM_NAMES[room]}</h2>
-      <ul className="room-list">
-        {rooms[room].map((id) => (
-          <li key={id}>{nameOf(id)}</li>
-        ))}
-      </ul>
-      <p className="hint">Rounds, leaders and hostage swaps come next.</p>
-    </div>
   );
 }
 

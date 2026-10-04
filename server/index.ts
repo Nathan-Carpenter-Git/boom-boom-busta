@@ -9,9 +9,11 @@ import { attachWs } from "./ws.js";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const MIN_PLAYERS = process.env.MIN_PLAYERS ? Number(process.env.MIN_PLAYERS) : undefined;
+// For example 0.1 plays a whole game in about a minute, for dev and tests.
+const ROUND_SECONDS_SCALE = process.env.ROUND_SECONDS_SCALE ? Number(process.env.ROUND_SECONDS_SCALE) : undefined;
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-const lobbies = new LobbyManager(MIN_PLAYERS);
+const lobbies = new LobbyManager(MIN_PLAYERS, { timeScale: ROUND_SECONDS_SCALE });
 const app = express();
 app.get("/health", (_req, res) => {
   res.json({ ok: true, lobbies: lobbies.lobbyCount });

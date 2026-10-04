@@ -7,6 +7,8 @@
   --red: #ff4b3e;
   --blue: #2f7bff;
   --gold: #ffde59;
+  --basement: #c38bff;
+  --rooftop: #6fd6ff;
   color-scheme: dark;
 }
 
@@ -302,18 +304,11 @@ h2 {
   margin-top: 16px;
 }
 
-.dealt {
-  text-align: center;
-}
 .card-button {
   background: none;
   border: 0;
   padding: 0;
   cursor: pointer;
-}
-.big-card {
-  width: min(250px, 70vw);
-  filter: drop-shadow(0 10px 18px #000a);
 }
 .goal {
   border-radius: 12px;
@@ -351,6 +346,298 @@ h2 {
 }
 .gallery-card {
   width: 100%;
+}
+
+/* The game: one room screen, phone first. */
+.game {
+  --room: var(--basement);
+}
+.game.rooftop {
+  --room: var(--rooftop);
+}
+.game-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 6px solid var(--room);
+  border-radius: 18px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 8px 18px #0008;
+}
+.head-room {
+  min-width: 0;
+}
+.room-name {
+  font-family: Bungee, Impact, sans-serif;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--room);
+}
+.timer {
+  font-family: Bungee, Impact, sans-serif;
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  flex: none;
+}
+.timer.urgent {
+  color: var(--red);
+}
+
+.my-card {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.mini-card {
+  width: 96px;
+  display: block;
+  filter: drop-shadow(0 6px 10px #000a);
+}
+.my-card-text {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.my-card-text .goal {
+  margin: 0;
+  font-size: 14px;
+}
+.hint.left {
+  text-align: left;
+  margin: 0;
+}
+
+.requests {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.requests li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #3a2f12;
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+.request-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.bookie {
+  margin-top: 12px;
+  border-color: var(--muted);
+}
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.btn.chosen {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.leader-line {
+  margin: 14px 0 8px;
+  font-size: 16px;
+}
+.hostage-panel {
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+.hostage-panel.mine {
+  border: 2px solid var(--red);
+}
+.hostage-panel .hint {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.room-players li {
+  flex-wrap: wrap;
+  padding: 4px 6px 4px 4px;
+}
+.room-players li.open {
+  outline: 2px solid var(--room);
+}
+.row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+.row-main .pname {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+.row-main .tag {
+  margin-left: 0;
+}
+.pname-text {
+  white-space: nowrap;
+}
+.row-main:disabled {
+  cursor: default;
+}
+.votes {
+  flex: none;
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 600;
+}
+.tag.hot {
+  background: var(--red);
+  color: #fff;
+}
+.tag.mine {
+  background: var(--room);
+  color: var(--bg);
+}
+.btn.send {
+  flex: none;
+  min-width: 84px;
+}
+.row-actions {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px 4px 6px;
+}
+.row-actions .btn:first-child {
+  grid-column: 1 / -1;
+}
+
+.known {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.known li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--muted);
+  border: 2px solid #000;
+}
+.dot.red {
+  background: var(--red);
+}
+.dot.blue {
+  background: var(--blue);
+}
+.via {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+.room-list li.lead {
+  border: 1px solid var(--gold);
+}
+
+.moving {
+  text-align: center;
+}
+.moving-call {
+  font-family: Bungee, Impact, sans-serif;
+  font-size: 22px;
+  color: var(--gold);
+  margin: 16px 0;
+}
+.moving-grid {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.winner {
+  text-align: center;
+  border-radius: 18px;
+  padding: 18px 14px;
+  background: var(--blue);
+  box-shadow: 0 6px 0 #0009;
+}
+.winner.red {
+  background: var(--red);
+}
+.winner-title {
+  font-family: Bungee, Impact, sans-serif;
+  font-size: 40px;
+  line-height: 1.1;
+  text-shadow: 3px 3px 0 #000;
+}
+.you-won {
+  margin-top: 8px;
+  font-weight: 800;
+}
+.goal.grey {
+  border-color: var(--muted);
+  margin-top: 14px;
+}
+.reveal-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+.reveal-grid li {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  font-size: 13px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.reveal-grid li.me span {
+  color: var(--gold);
+  font-weight: 800;
+}
+.reveal-card {
+  width: 100%;
+  max-width: 96px;
 }
 
 /* Without this, Chrome snaps glyphs to pixels, which opens gaps inside words ("tea m's" on the
