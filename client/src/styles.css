@@ -92,20 +92,20 @@ input {
 }
 .fan-card {
   position: absolute;
-  width: 112px;
+  width: 108px;
   left: 50%;
   top: 10px;
   filter: drop-shadow(0 8px 14px #0008);
 }
 .fan-card.left {
-  transform: translateX(-130%) rotate(-12deg);
+  transform: translateX(-152%) translateY(6px) rotate(-8deg);
 }
 .fan-card.mid {
   z-index: 1;
   transform: translateX(-50%) translateY(-8px);
 }
 .fan-card.right {
-  transform: translateX(30%) rotate(12deg);
+  transform: translateX(52%) translateY(6px) rotate(8deg);
 }
 
 .pitch {
@@ -351,4 +351,13 @@ h2 {
 }
 .gallery-card {
   width: 100%;
+}
+
+/* Without this, Chrome snaps glyphs to pixels, which opens gaps inside words ("tea m's" on the
+   small rotated cards, "Twit chy" in inputs). */
+body,
+input,
+button,
+svg text {
+  text-rendering: geometricPrecision;
 }
