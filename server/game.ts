@@ -1,4 +1,4 @@
-import { CARDS, type CardId } from "../shared/cards.js";
+import type { CardId, Team } from "../shared/cards.js";
 import type {
   GameAction,
   GameView,
@@ -21,6 +21,8 @@ export interface GamePlayer {
   id: string;
   name: string;
   card: CardId;
+  /** The team this player's card plays for, set at the deal. */
+  team: Team;
   room: RoomIndex;
   /** Who this player backs as their room's leader. */
   vote: string | null;
@@ -34,6 +36,7 @@ export interface Seat {
   id: string;
   name: string;
   card: CardId;
+  team: Team;
   room: RoomIndex;
 }
 
@@ -139,10 +142,8 @@ export class Game {
     if (me) for (const p of this.inRoom(me.room)) if (p.vote) votes[p.id] = p.vote;
     const known: KnownInfo[] = me
       ? [...me.knows].map(([id, via]) => {
-          const card = this.player(id).card;
-          return via === "color share"
-            ? { id, team: CARDS[card].team, via }
-            : { id, team: CARDS[card].team, card, via };
+          const { card, team } = this.player(id);
+          return via === "color share" ? { id, team, via } : { id, team, card, via };
         })
       : [];
     return {
@@ -337,7 +338,7 @@ export class Game {
     const bookie = this.players.find((p) => p.card === "bookie");
     this.results = {
       winner,
-      cards: this.players.map((p) => ({ id: p.id, card: p.card })),
+      cards: this.players.map((p) => ({ id: p.id, card: p.card, team: p.team })),
       bookie: bookie ? { id: bookie.id, call: this.bookieCall, won: this.bookieCall === winner } : null,
     };
   }

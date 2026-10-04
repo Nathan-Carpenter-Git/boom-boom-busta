@@ -59,11 +59,18 @@ it("plays a whole short game over real sockets, with a reconnect mid-round", { t
   });
   await host.until((m) => m.type === "lobby" && m.lobby.players.length === 6);
 
+  // Only the host picks the special cards, and everyone sees the choice.
+  guests[0].send({ type: "setSpecial", card: "liar", on: true });
+  await guests[0].until((m) => m.type === "error" && m.message === "Only the host can do that");
+  host.send({ type: "setSpecial", card: "liar", on: true });
+  await Promise.all(guests.map((g) => g.view((l) => l.settings.specials.includes("liar"))));
+
   host.send({ type: "deal" });
   const dealt = await Promise.all([host, ...guests].map((c) => c.view((l) => l.game?.phase === "vote")));
   const cards = dealt.map((l) => l.you?.card);
   expect(cards.filter((c) => c === "boss")).toHaveLength(1);
   expect(cards.filter((c) => c === "busta")).toHaveLength(1);
+  expect(cards.filter((c) => c === "liar")).toHaveLength(1);
   const clients = [host, ...guests];
   const ids = await Promise.all(
     clients.map(async (c) => ((await c.until((m) => m.type === "joined")) as { playerId: string }).playerId),

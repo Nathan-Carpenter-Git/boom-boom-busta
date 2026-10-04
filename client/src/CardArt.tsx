@@ -1,13 +1,17 @@
 import type { JSX } from "react";
-import { CARDS, type CardId, type Team } from "../../shared/cards";
+import { CARDS, type CardId, fixedTeam, TEAM_LABEL, type Team } from "../../shared/cards";
 
 // Original card art, drawn as SVG so it stays sharp on every screen and costs no download.
 // Every card shares one frame: team colour border, halftone sky, a big icon, and a name banner.
 
-const PALETTE: Record<Team, { main: string; dark: string; light: string }> = {
+/** "either" colours an either-team card before the deal (lobby, rules), halfway between Red and Blue. */
+type Colour = Team | "either";
+
+const PALETTE: Record<Colour, { main: string; dark: string; light: string }> = {
   blue: { main: "#2f7bff", dark: "#0f2a66", light: "#9cc3ff" },
   red: { main: "#ff4b3e", dark: "#5c1010", light: "#ffb2a8" },
   grey: { main: "#a99fc2", dark: "#2e2940", light: "#e4def3" },
+  either: { main: "#a35cff", dark: "#2d1366", light: "#d9c4ff" },
 };
 
 const INK = "#14111f";
@@ -96,24 +100,75 @@ function Dice() {
   );
 }
 
+/** A speech bubble with its tail at the bottom left, shared by the Truth Teller and the Liar. */
+function Bubble({ fill }: { fill: string }) {
+  return (
+    <path
+      d="M64 66 H186 C204 66 216 78 216 96 V166 C216 184 204 196 186 196 H104 L60 230 L72 196 H64 C46 196 34 184 34 166 V96 C34 78 46 66 64 66 Z"
+      fill={fill}
+      stroke={INK}
+      strokeWidth="6"
+      strokeLinejoin="round"
+    />
+  );
+}
+
+function Check() {
+  const tick = "M76 132 L110 164 L174 96";
+  return (
+    <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <Bubble fill="#fff" />
+      <path d={tick} stroke={INK} strokeWidth="34" />
+      <path d={tick} stroke="#3ddc84" strokeWidth="20" />
+    </g>
+  );
+}
+
+function CrossedFingers() {
+  return (
+    <g stroke={INK} strokeWidth="5" strokeLinejoin="round">
+      <Bubble fill="#fff3c4" />
+      {/* The middle finger rises from the right and leans left; the index finger crosses over it. */}
+      <rect x="130" y="76" width="26" height="90" rx="13" fill="#f2ad80" transform="rotate(-27 143 160)" />
+      <rect x="98" y="76" width="26" height="90" rx="13" fill="#ffd2ad" transform="rotate(27 111 160)" />
+      <path
+        d="M94 162 C94 151 101 146 111 146 H146 C158 146 164 154 164 165 V176 C164 186 158 192 146 192 H109 C100 192 94 186 94 177 Z"
+        fill="#ffd2ad"
+      />
+      <path d="M104 169 H154" fill="none" strokeWidth="4" strokeLinecap="round" />
+      <path d="M94 166 C82 162 78 174 88 180 L98 184" fill="#ffd2ad" />
+    </g>
+  );
+}
+
 const ICONS: Record<CardId, () => JSX.Element> = {
   boss: Crown,
   busta: Bomb,
   "blue-crew": Shield,
   "red-crew": Match,
   bookie: Dice,
+  "truth-teller": Check,
+  liar: CrossedFingers,
 };
 
-export function CardFace({ id, className }: { id: CardId; className?: string }) {
+/** A card face; `team` colours either-team cards once dealt, and they show in purple without one. */
+export function CardFace({ id, team, className }: { id: CardId; team?: Team; className?: string }) {
   const card = CARDS[id];
-  const c = PALETTE[card.team];
+  const colour: Colour = fixedTeam(id) ?? team ?? "either";
+  const c = PALETTE[colour];
+  // Corner pips show both teams on a card that could be either.
+  const pips = colour === "either" ? [PALETTE.blue.main, PALETTE.red.main] : [c.main, c.main];
   const Icon = ICONS[id];
-  const pattern = `dots-${id}`;
-  const glow = `glow-${id}`;
-  const clip = `clip-${id}`;
+  const pattern = `dots-${id}-${colour}`;
+  const glow = `glow-${id}-${colour}`;
+  const clip = `clip-${id}-${colour}`;
   const special = id === "boss" || id === "busta";
+  const name = card.name.toUpperCase();
+  const label = card.team === "either" && team ? `${card.name}, ${TEAM_LABEL[team]}` : card.name;
+  // Long names shrink to stay inside the banner.
+  const nameSize = name.length > 11 ? 20 : 25;
   return (
-    <svg className={className} viewBox="0 0 250 350" role="img" aria-label={`${card.name}, ${card.tagline}`}>
+    <svg className={className} viewBox="0 0 250 350" role="img" aria-label={`${label}, ${card.tagline}`}>
       <defs>
         <pattern id={pattern} width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <circle cx="6" cy="6" r="2.2" fill={c.main} opacity=".55" />
@@ -141,16 +196,24 @@ export function CardFace({ id, className }: { id: CardId; className?: string }) 
       <rect x="12" y="250" width="226" height="88" rx="0" fill={INK} />
       <rect x="12" y="324" width="226" height="14" rx="0" fill={INK} />
       <rect x="12" y="246" width="226" height="8" fill={c.main} />
-      <text x="125" y="290" textAnchor="middle" fontFamily="Bungee, Impact, sans-serif" fontSize="25" fill="#fff">
-        {card.name.toUpperCase()}
+      <text
+        x="125"
+        y="290"
+        textAnchor="middle"
+        fontFamily="Bungee, Impact, sans-serif"
+        fontSize={nameSize}
+        fill="#fff"
+        {...(name.length > 11 ? { textLength: 206, lengthAdjust: "spacingAndGlyphs" } : {})}
+      >
+        {name}
       </text>
       <text x="125" y="318" textAnchor="middle" fontFamily="Rubik, sans-serif" fontSize="14" fill={c.light}>
         {card.tagline}
       </text>
       <circle cx="36" cy="36" r="14" fill={INK} />
-      <circle cx="36" cy="36" r="8" fill={c.main} />
+      <circle cx="36" cy="36" r="8" fill={pips[0]} />
       <circle cx="214" cy="36" r="14" fill={INK} />
-      <circle cx="214" cy="36" r="8" fill={c.main} />
+      <circle cx="214" cy="36" r="8" fill={pips[1]} />
     </svg>
   );
 }

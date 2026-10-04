@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { buildDeck } from "../shared/cards.js";
-import type { GameAction, LobbyView, ServerMessage } from "../shared/protocol.js";
+import { type CardId, cleanSpecials, DEFAULT_SPECIALS, dealCards, SPECIAL_CARDS } from "../shared/cards.js";
+import type { GameAction, LobbySettings, LobbyView, ServerMessage } from "../shared/protocol.js";
 import { MAX_NAME_LENGTH, MAX_PLAYERS, MIN_PLAYERS, type RoomIndex } from "../shared/rules.js";
 import { Game, type GameOptions } from "./game.js";
 import { LobbyError, shuffle } from "./util.js";
@@ -21,6 +21,8 @@ export interface Lobby {
   hostId: string;
   phase: "lobby" | "game";
   players: Player[];
+  /** The host's choices, kept from game to game in this lobby. */
+  settings: LobbySettings;
   game: Game | null;
 }
 
@@ -58,7 +60,14 @@ export class LobbyManager {
       code = Array.from(randomBytes(CODE_LENGTH), (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
     } while (this.lobbies.has(code));
     const player = this.newPlayer(name, send);
-    const lobby: Lobby = { code, hostId: player.id, phase: "lobby", players: [player], game: null };
+    const lobby: Lobby = {
+      code,
+      hostId: player.id,
+      phase: "lobby",
+      players: [player],
+      settings: { specials: [...DEFAULT_SPECIALS] },
+      game: null,
+    };
     this.lobbies.set(code, lobby);
     return { lobby, player };
   }
@@ -122,16 +131,25 @@ export class LobbyManager {
     return target;
   }
 
+  /** Turns a special card on or off for the next deal; host only, and not mid-game. */
+  setSpecial(lobby: Lobby, byId: string, card: CardId, on: boolean): void {
+    this.requireHost(lobby, byId);
+    if (lobby.phase !== "lobby") throw new LobbyError("Change the cards between games");
+    if (!SPECIAL_CARDS.includes(card)) throw new LobbyError("That's not a special card");
+    const rest = lobby.settings.specials.filter((id) => id !== card);
+    lobby.settings.specials = cleanSpecials(on === true ? [...rest, card] : rest);
+  }
+
   deal(lobby: Lobby, byId: string, random = Math.random): void {
     this.requireHost(lobby, byId);
     if (lobby.phase !== "lobby") throw new LobbyError("Cards are already dealt");
     const count = lobby.players.length;
     if (count < this.minPlayers) throw new LobbyError(`You need at least ${this.minPlayers} players`);
-    const deck = shuffle(buildDeck(count), random);
+    const deck = shuffle(dealCards(count, lobby.settings.specials, random), random);
     const seating = shuffle(lobby.players, random).map((p, i) => ({
       id: p.id,
       name: p.name,
-      card: deck[i],
+      ...deck[i],
       room: (i % 2) as RoomIndex,
     }));
     lobby.game = new Game(seating, Date.now(), { random, ...this.options });
@@ -163,7 +181,8 @@ export class LobbyManager {
       phase: lobby.phase,
       minPlayers: this.minPlayers,
       players: lobby.players.map((p) => ({ id: p.id, name: p.name, connected: p.send !== null })),
-      you: me ? { card: me.card, room: me.room } : null,
+      settings: { specials: [...lobby.settings.specials] },
+      you: me ? { card: me.card, team: me.team, room: me.room } : null,
       game: lobby.game ? lobby.game.view(forId, now) : null,
     };
   }

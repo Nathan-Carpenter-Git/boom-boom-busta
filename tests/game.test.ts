@@ -1,16 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { Game, MOVING_SECONDS, VOTE_SECONDS } from "../server/game";
 import { LobbyError } from "../server/util";
-import type { CardId } from "../shared/cards";
+import { type CardId, type Dealt, fixedTeam } from "../shared/cards";
 import type { RoomIndex } from "../shared/rules";
 
 const T0 = 1_000_000;
 // Always the first option, so "random" fills and ties are predictable.
 const first = () => 0;
 
-/** Players p0..pN-1 with the given cards; even ids start in The Basement (0), odd ids in The Rooftop (1). */
-function makeGame(cards: CardId[]) {
-  const seats = cards.map((card, i) => ({ id: `p${i}`, name: `P${i}`, card, room: (i % 2) as RoomIndex }));
+/**
+ * Players p0..pN-1 with the given cards (either-team cards need their dealt team);
+ * even ids start in The Basement (0), odd ids in The Rooftop (1).
+ */
+function makeGame(cards: (CardId | Dealt)[]) {
+  const seats = cards.map((c, i) => {
+    const dealt = typeof c === "string" ? { card: c, team: fixedTeam(c) ?? "grey" } : c;
+    return { id: `p${i}`, name: `P${i}`, ...dealt, room: (i % 2) as RoomIndex };
+  });
   return new Game(seats, T0, { random: first });
 }
 
@@ -250,5 +256,45 @@ describe("the Bookie and the end", () => {
     expect(() => early.act("p6", { type: "bookieCall", team: "red" }, T0)).toThrow("last round");
     const game = play(SEVEN, [...shuffleCrew, ["p4", "p5"]]);
     expect(game.results?.bookie).toEqual({ id: "p6", call: null, won: false });
+  });
+});
+
+describe("the Truth Teller and the Liar", () => {
+  // p4 is a Red Truth Teller in The Basement, p5 a Blue Liar in The Rooftop.
+  const SPECIALS: (CardId | Dealt)[] = [
+    "boss",
+    "busta",
+    "blue-crew",
+    "red-crew",
+    { card: "truth-teller", team: "red" },
+    { card: "liar", team: "blue" },
+  ];
+
+  it("shows their dealt team in color shares, card shares and reveals", () => {
+    const game = makeGame(SPECIALS);
+    game.act("p0", { type: "requestShare", to: "p4", kind: "color" }, T0);
+    game.act("p4", { type: "answerShare", requestId: "1", accept: true }, T0);
+    expect(game.view("p0", T0).known).toEqual([{ id: "p4", team: "red", via: "color share" }]);
+    expect(game.view("p4", T0).known).toEqual([{ id: "p0", team: "blue", via: "color share" }]);
+    game.act("p2", { type: "requestShare", to: "p4", kind: "card" }, T0);
+    game.act("p4", { type: "answerShare", requestId: "2", accept: true }, T0);
+    expect(game.view("p2", T0).known).toEqual([{ id: "p4", team: "red", card: "truth-teller", via: "card share" }]);
+    game.act("p5", { type: "reveal" }, T0);
+    expect(game.view("p1", T0).known).toEqual([{ id: "p5", team: "blue", card: "liar", via: "public reveal" }]);
+  });
+
+  it("show their team in the results and leave the win check alone", () => {
+    const game = makeGame(SPECIALS);
+    electLeaders(game);
+    // The two specials swap rooms every round.
+    for (let round = 0; round < 3; round++) {
+      game.act("p2", { type: "pickHostage", playerId: round === 1 ? "p5" : "p4" }, T0);
+      game.act("p3", { type: "pickHostage", playerId: round === 1 ? "p4" : "p5" }, T0);
+      finishRound(game);
+    }
+    expect(game.results?.cards).toContainEqual({ id: "p4", card: "truth-teller", team: "red" });
+    expect(game.results?.cards).toContainEqual({ id: "p5", card: "liar", team: "blue" });
+    // The Boss (p0) and the Busta (p1) never moved.
+    expect(game.results?.winner).toBe("blue");
   });
 });

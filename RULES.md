@@ -15,7 +15,7 @@ The base game follows Two Rooms and a Boom, with our own names.
   Every seat left after that gets Blue Crew or Red Crew.
 - Teams are kept as even as possible: a special card that can be on either team goes to the smaller team (random on a tie), and Crew cards fill the rest.
   When the teams can't be equal, the extra player goes to a random team.
-- Special cards: **the Bookie** (no team, on by default), **the Truth Teller** and **the Liar** (either team, off by default).
+- Special cards, all off by default: **the Bookie** (no team), **the Truth Teller** and **the Liar** (either team).
 - The Bookie calls which team will win before the last hostage exchange, and wins if the call is right.
 - Every player sees only their own card.
 

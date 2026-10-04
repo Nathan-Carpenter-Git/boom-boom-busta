@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CARDS, type CardId, TEAM_LABEL } from "../../shared/cards";
+import { CARDS, type CardId, cardGoal, TEAM_LABEL, type Team } from "../../shared/cards";
 import type { GameAction, GameView, KnownInfo, LobbyView, ShareKind, ShareRequest } from "../../shared/protocol";
 import { ROOM_NAMES, type RoomIndex } from "../../shared/rules";
 import { CardBack, CardFace } from "./CardArt";
@@ -31,14 +31,15 @@ interface Props {
   game: GameView;
   me: string;
   card: CardId;
+  team: Team;
   room: RoomIndex;
 }
 
-export function GameScreen({ conn, lobby, game, me, card, room }: Props) {
+export function GameScreen({ conn, lobby, game, me, card, team, room }: Props) {
   const isHost = lobby.hostId === me;
   const act = (action: GameAction) => conn.send({ type: "act", action });
   const nameOf = (id: string) => game.players.find((p) => p.id === id)?.name ?? "?";
-  const props = { game, me, card, room, act, nameOf };
+  const props = { game, me, card, team, room, act, nameOf };
 
   return (
     <section className={`game ${ROOM_CLASS[room]}`}>
@@ -47,7 +48,11 @@ export function GameScreen({ conn, lobby, game, me, card, room }: Props) {
       ) : (
         <>
           <GameHeader game={game} room={room} />
-          {game.phase === "moving" ? <Moving {...props} /> : <Room {...props} connected={lobby.players} />}
+          {game.phase === "moving" ? (
+            <Moving {...props} />
+          ) : (
+            <Room {...props} connected={lobby.players} specials={lobby.settings.specials} />
+          )}
         </>
       )}
       <footer className="lobby-actions">
@@ -109,12 +114,13 @@ interface ScreenProps {
   game: GameView;
   me: string;
   card: CardId;
+  team: Team;
   room: RoomIndex;
   act: (action: GameAction) => void;
   nameOf: (id: string) => string;
 }
 
-function MyCard({ card, onReveal }: { card: CardId; onReveal?: () => void }) {
+function MyCard({ card, team, onReveal }: { card: CardId; team: Team; onReveal?: () => void }) {
   const [shown, setShown] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const def = CARDS[card];
@@ -126,15 +132,15 @@ function MyCard({ card, onReveal }: { card: CardId; onReveal?: () => void }) {
         aria-label={shown ? "Hide your card" : "Peek at your card"}
         onClick={() => setShown((s) => !s)}
       >
-        {shown ? <CardFace id={card} className="mini-card" /> : <CardBack className="mini-card" />}
+        {shown ? <CardFace id={card} team={team} className="mini-card" /> : <CardBack className="mini-card" />}
       </button>
       <div className="my-card-text">
         {shown ? (
-          <p className={`goal ${def.team}`}>
+          <p className={`goal ${team}`}>
             <strong>
-              {def.name}, {TEAM_LABEL[def.team]}.
+              {def.name}, {TEAM_LABEL[team]}.
             </strong>{" "}
-            {def.goal}
+            {cardGoal(card, team)}
           </p>
         ) : (
           <p className="hint left">Tap your card to peek. Keep it hidden.</p>
@@ -190,8 +196,12 @@ function Requests({ game, me, act, nameOf }: ScreenProps) {
   );
 }
 
-function Room({ connected, ...props }: ScreenProps & { connected: LobbyView["players"] }) {
-  const { game, me, card, room, act, nameOf } = props;
+function Room({
+  connected,
+  specials,
+  ...props
+}: ScreenProps & { connected: LobbyView["players"]; specials: CardId[] }) {
+  const { game, me, card, team, room, act, nameOf } = props;
   const [open, setOpen] = useState<string | null>(null);
   const { leader, players } = game.rooms[room];
   const amLeader = leader === me;
@@ -209,7 +219,7 @@ function Room({ connected, ...props }: ScreenProps & { connected: LobbyView["pla
 
   return (
     <div className="room">
-      <MyCard card={card} onReveal={() => act({ type: "reveal" })} />
+      <MyCard card={card} team={team} onReveal={() => act({ type: "reveal" })} />
       <Requests {...props} />
 
       {isBookie && game.phase === "round" && lastRound && (
@@ -326,6 +336,7 @@ function Room({ connected, ...props }: ScreenProps & { connected: LobbyView["pla
       </ul>
 
       <Known known={game.known} nameOf={nameOf} />
+      <SpecialsInPlay specials={specials} />
 
       <OtherRoom game={game} room={otherRoom(room)} nameOf={nameOf} />
     </div>
@@ -344,7 +355,7 @@ function Known({ known, nameOf }: { known: KnownInfo[]; nameOf: (id: string) => 
             <li key={k.id}>
               <span className={`dot ${k.team}`} />
               <span className="pname">
-                <strong>{nameOf(k.id)}</strong>: {k.card ? CARDS[k.card].name : TEAM_LABEL[k.team]}
+                <strong>{nameOf(k.id)}</strong>: {k.card ? cardLabel(k.card, k.team) : TEAM_LABEL[k.team]}
               </span>
               <span className="via">{k.via}</span>
             </li>
@@ -352,6 +363,28 @@ function Known({ known, nameOf }: { known: KnownInfo[]; nameOf: (id: string) => 
         </ul>
       )}
     </>
+  );
+}
+
+/** A card's name, with its team when the card alone doesn't say it. */
+function cardLabel(card: CardId, team: Team): string {
+  const name = CARDS[card].name;
+  return CARDS[card].team === "either" ? `${name}, ${TEAM_LABEL[team]}` : name;
+}
+
+/** The special cards the host turned on; not which ones were dealt. */
+function SpecialsInPlay({ specials }: { specials: CardId[] }) {
+  return (
+    <p className="specials-in-play">
+      <span className="label">Special cards that may be in play:</span>{" "}
+      {specials.length === 0
+        ? "none"
+        : specials.map((id) => (
+            <span key={id} className="chip">
+              {CARDS[id].name.replace(/^The /, "")}
+            </span>
+          ))}
+    </p>
   );
 }
 
@@ -404,10 +437,10 @@ function Moving({ game, me, room, nameOf }: ScreenProps) {
 function Results({ game, me, nameOf }: ScreenProps) {
   const results = game.results;
   if (!results) return null;
-  const cardOf = (id: string) => results.cards.find((c) => c.id === id)?.card;
+  const dealtTo = (id: string) => results.cards.find((c) => c.id === id);
   const bossId = results.cards.find((c) => c.card === "boss")?.id ?? "";
   const bossRoom = game.players.find((p) => p.id === bossId)?.room ?? 0;
-  const myTeam = CARDS[cardOf(me) ?? "bookie"].team;
+  const myTeam = dealtTo(me)?.team ?? "grey";
   const bookie = results.bookie;
   const iWon = myTeam === results.winner || (bookie?.id === me && bookie.won);
   return (
@@ -433,10 +466,10 @@ function Results({ game, me, nameOf }: ScreenProps) {
           <h2>{ROOM_NAMES[room]}</h2>
           <ul className="reveal-grid">
             {game.rooms[room].players.map((id) => {
-              const card = cardOf(id);
+              const dealt = dealtTo(id);
               return (
                 <li key={id} className={id === me ? "me" : ""}>
-                  {card && <CardFace id={card} className="reveal-card" />}
+                  {dealt && <CardFace id={dealt.card} team={dealt.team} className="reveal-card" />}
                   <span>{nameOf(id)}</span>
                 </li>
               );

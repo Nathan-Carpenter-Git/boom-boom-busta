@@ -85,6 +85,12 @@ export function attachWs(wss: WebSocketServer, lobbies: LobbyManager, graceMs = 
         lobbies.broadcast(lobby);
         return;
       }
+      case "setSpecial": {
+        const { lobby, seat } = seated(ws);
+        lobbies.setSpecial(lobby, seat.playerId, msg.card, msg.on);
+        lobbies.broadcast(lobby);
+        return;
+      }
       case "deal": {
         const { lobby, seat } = seated(ws);
         lobbies.deal(lobby, seat.playerId);
