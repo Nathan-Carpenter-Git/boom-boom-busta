@@ -1,11 +1,13 @@
 import type { CardId, Team } from "../shared/cards.js";
 import type {
+  DemandKind,
   GameAction,
   GameView,
   KnownInfo,
   ResultsView,
   ShareKind,
   ShareRequest,
+  Spend,
   WinningTeam,
 } from "../shared/protocol.js";
 import { type RoomIndex, roundPlan } from "../shared/rules.js";
@@ -16,6 +18,10 @@ import { LobbyError, shuffle } from "./util.js";
 
 export const VOTE_SECONDS = 60;
 export const MOVING_SECONDS = 10;
+/** Influence everyone starts with, what they gain at the start of each later round, and what each spend costs. */
+export const INFLUENCE_START = 2;
+export const INFLUENCE_PER_ROUND = 1;
+export const INFLUENCE_COST = { campaign: 1, color: 2, card: 4 } as const;
 
 export interface GamePlayer {
   id: string;
@@ -26,6 +32,10 @@ export interface GamePlayer {
   room: RoomIndex;
   /** Who this player backs as their room's leader. */
   vote: string | null;
+  /** Their vote counts twice, from a Campaign, until they change it or the round ends. */
+  campaign: boolean;
+  /** Influence left to spend; always 0 when Influence is off. */
+  influence: number;
   /** Left the game for good: the card stays in play, but they no longer vote or share. */
   gone: boolean;
   /** What this player has seen of other players' cards, by player id. */
@@ -44,9 +54,14 @@ export interface GameOptions {
   /** Multiplies every timer, so dev and tests can play short games (for example 0.1). */
   timeScale?: number;
   random?: () => number;
+  /** Gives everyone an Influence budget (the host's lobby setting). */
+  influence?: boolean;
 }
 
 const other = (room: RoomIndex): RoomIndex => (room === 0 ? 1 : 0);
+const voteWeight = (p: GamePlayer) => (p.campaign ? 2 : 1);
+/** Ways of learning only a player's team color, not their card. */
+const colorOnly = (via: KnownInfo["via"]) => via === "color share" || via === "color demand";
 
 export class Game {
   phase: GameView["phase"] = "vote";
@@ -61,6 +76,9 @@ export class Game {
   /** Who arrived in each room in the last exchange. */
   moved: [string[], string[]] | null = null;
   results: ResultsView | null = null;
+  /** This round's Influence spends in each room. */
+  spends: [Spend[], Spend[]] = [[], []];
+  readonly influence: boolean;
   readonly plan: { seconds: number; hostages: number }[];
   private readonly scale: number;
   private readonly random: () => number;
@@ -69,7 +87,15 @@ export class Game {
   constructor(seats: Seat[], now: number, options: GameOptions = {}) {
     this.scale = options.timeScale ?? 1;
     this.random = options.random ?? Math.random;
-    this.players = seats.map((s) => ({ ...s, vote: null, gone: false, knows: new Map() }));
+    this.influence = options.influence ?? false;
+    this.players = seats.map((s) => ({
+      ...s,
+      vote: null,
+      campaign: false,
+      influence: this.influence ? INFLUENCE_START : 0,
+      gone: false,
+      knows: new Map(),
+    }));
     this.plan = roundPlan(seats.length).map((r) => ({ seconds: r.minutes * 60 * this.scale, hostages: r.hostages }));
     this.endsAt = now + VOTE_SECONDS * 1000 * this.scale;
   }
@@ -103,6 +129,10 @@ export class Game {
         return;
       case "reveal":
         return this.reveal(me);
+      case "campaign":
+        return this.campaign(me, action.for, now);
+      case "demand":
+        return this.demand(me, action.target, action.kind);
       case "pickHostage":
         return this.pickHostage(me, action.playerId);
       case "bookieCall":
@@ -128,7 +158,13 @@ export class Game {
     if (!p || p.gone) return;
     p.gone = true;
     p.vote = null;
-    for (const q of this.players) if (q.vote === p.id) q.vote = null;
+    p.campaign = false;
+    for (const q of this.players) {
+      if (q.vote === p.id) {
+        q.vote = null;
+        q.campaign = false;
+      }
+    }
     this.requests = this.requests.filter((r) => r.from !== p.id && r.to !== p.id);
     // A leader who leaves is replaced by a fresh vote in their room.
     if (this.leaders[p.room] === p.id) this.leaders[p.room] = null;
@@ -143,9 +179,10 @@ export class Game {
     const known: KnownInfo[] = me
       ? [...me.knows].map(([id, via]) => {
           const { card, team } = this.player(id);
-          return via === "color share" ? { id, team, via } : { id, team, card, via };
+          return colorOnly(via) ? { id, team, via } : { id, team, card, via };
         })
       : [];
+    const roommates = me ? this.inRoom(me.room) : [];
     return {
       phase: this.phase,
       round: this.round,
@@ -158,6 +195,9 @@ export class Game {
         players: this.inRoom(room as RoomIndex).map((p) => p.id),
       })) as GameView["rooms"],
       votes,
+      campaigns: roommates.filter((p) => p.campaign).map((p) => p.id),
+      influence: this.influence ? Object.fromEntries(roommates.map((p) => [p.id, p.influence])) : null,
+      spends: me ? this.spends[me.room].map((s) => ({ ...s })) : [],
       hostages: me ? [...this.hostages[me.room]] : [],
       requests: this.requests.filter((r) => r.from === forId || r.to === forId),
       known,
@@ -180,16 +220,21 @@ export class Game {
   private vote(me: GamePlayer, forId: string | null, now: number): void {
     this.requireTalking();
     if (forId !== null && this.roommate(me, forId).gone) throw new LobbyError("They left the game");
+    // Changing your vote ends a Campaign, with no refund.
+    if (forId !== me.vote) me.campaign = false;
     me.vote = forId;
     this.checkLeader(me.room, now);
   }
 
-  /** Makes whoever holds a majority of the room's votes its leader, then starts round 1 once both rooms have one. */
+  /**
+   * Makes whoever holds more votes than half the room's players its leader (a campaigning vote counts
+   * twice), then starts round 1 once both rooms have one.
+   */
   private checkLeader(room: RoomIndex, now: number): void {
     const voters = this.inRoom(room).filter((p) => !p.gone);
     const tally = new Map<string, number>();
     for (const p of voters) {
-      if (p.vote && this.player(p.vote).room === room) tally.set(p.vote, (tally.get(p.vote) ?? 0) + 1);
+      if (p.vote && this.player(p.vote).room === room) tally.set(p.vote, (tally.get(p.vote) ?? 0) + voteWeight(p));
     }
     for (const [id, count] of tally) {
       if (count * 2 > voters.length && this.leaders[room] !== id) this.setLeader(room, id);
@@ -207,7 +252,7 @@ export class Game {
     if (this.leaders[room]) return;
     const candidates = this.inRoom(room).filter((p) => !p.gone);
     if (candidates.length === 0) return;
-    const votes = (id: string) => candidates.filter((p) => p.vote === id).length;
+    const votes = (id: string) => candidates.filter((p) => p.vote === id).reduce((sum, p) => sum + voteWeight(p), 0);
     const top = Math.max(...candidates.map((c) => votes(c.id)));
     const tied = candidates.filter((c) => votes(c.id) === top);
     this.setLeader(room, tied[Math.floor(this.random() * tied.length)].id);
@@ -244,9 +289,43 @@ export class Game {
   private learn(viewer: GamePlayer, target: GamePlayer, via: KnownInfo["via"]): void {
     // Seeing the whole card beats seeing the color; never downgrade.
     const had = viewer.knows.get(target.id);
-    if (had && had !== "color share") return;
-    if (had === "color share" && via === "color share") return;
+    if (had && (!colorOnly(had) || colorOnly(via))) return;
     viewer.knows.set(target.id, via);
+  }
+
+  /** Checks an Influence spend is allowed now and returns the roommate it targets. */
+  private spendTarget(me: GamePlayer, id: string): GamePlayer {
+    if (!this.influence) throw new LobbyError("Influence is off in this game");
+    if (this.phase !== "vote" && this.phase !== "round") throw new LobbyError("Spend Influence during a round");
+    if (id === me.id) throw new LobbyError("Pick someone else");
+    const target = this.roommate(me, id);
+    if (target.gone) throw new LobbyError("They left the game");
+    return target;
+  }
+
+  private spend(me: GamePlayer, target: GamePlayer, kind: Spend["kind"]): void {
+    const cost = INFLUENCE_COST[kind];
+    if (me.influence < cost) throw new LobbyError(`That costs ${cost} Influence and you have ${me.influence}`);
+    me.influence -= cost;
+    this.spends[me.room].push({ by: me.id, target: target.id, kind });
+  }
+
+  private campaign(me: GamePlayer, forId: string, now: number): void {
+    const target = this.spendTarget(me, forId);
+    if (me.campaign && me.vote === target.id) throw new LobbyError("You're already campaigning for them");
+    this.spend(me, target, "campaign");
+    me.vote = target.id;
+    me.campaign = true;
+    this.checkLeader(me.room, now);
+  }
+
+  private demand(me: GamePlayer, id: string, kind: DemandKind): void {
+    if (kind !== "color" && kind !== "card") throw new LobbyError("Unknown demand");
+    const target = this.spendTarget(me, id);
+    const had = me.knows.get(target.id);
+    if (had && (kind === "color" || !colorOnly(had))) throw new LobbyError(`You already know their ${kind}`);
+    this.spend(me, target, kind);
+    this.learn(me, target, kind === "color" ? "color demand" : "card demand");
   }
 
   private pickHostage(me: GamePlayer, id: string): void {
@@ -293,6 +372,7 @@ export class Game {
         if (this.lastRound) this.finish();
         else {
           this.round += 1;
+          if (this.influence) for (const p of this.players) p.influence += INFLUENCE_PER_ROUND;
           this.startRound(at);
         }
         return;
@@ -321,6 +401,9 @@ export class Game {
         p.vote = null;
       }
     }
+    // Campaigns last one round, and each room's spend log starts over.
+    for (const p of this.players) p.campaign = false;
+    this.spends = [[], []];
     // Votes only count inside your own room.
     for (const p of this.players) if (p.vote && this.player(p.vote).room !== p.room) p.vote = null;
     this.moved = [sent[1].map((p) => p.id), sent[0].map((p) => p.id)];

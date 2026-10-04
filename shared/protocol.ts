@@ -15,7 +15,17 @@ export interface KnownInfo {
   id: string;
   team: Team;
   card?: CardId;
-  via: "color share" | "card share" | "public reveal";
+  via: "color share" | "card share" | "public reveal" | "color demand" | "card demand";
+}
+
+/** What a demand asks for: the target's team color, or their whole card. */
+export type DemandKind = "color" | "card";
+
+/** One Influence spend, shown to everyone in the room where it happened until the next exchange. */
+export interface Spend {
+  by: string;
+  target: string;
+  kind: "campaign" | DemandKind;
 }
 
 export interface ShareRequest {
@@ -57,6 +67,12 @@ export interface GameView {
   rooms: [RoomView, RoomView];
   /** Leader votes in your room: voter id to the player they back. */
   votes: Record<string, string>;
+  /** Voters in your room whose vote counts twice because they campaigned. */
+  campaigns: string[];
+  /** Influence left for each player in your room, or null when Influence is off. */
+  influence: Record<string, number> | null;
+  /** This round's Influence spends in your room, oldest first. */
+  spends: Spend[];
   /** Your room leader's current hostage picks. */
   hostages: string[];
   /** Share requests you sent or received. */
@@ -72,6 +88,8 @@ export interface GameView {
 export interface LobbySettings {
   /** Special cards the host turned on, in display order; dealt at random when they outnumber the seats. */
   specials: CardId[];
+  /** Everyone gets an Influence budget to spend during the game. */
+  influence: boolean;
 }
 
 export interface LobbyView {
@@ -92,6 +110,8 @@ export type GameAction =
   | { type: "answerShare"; requestId: string; accept: boolean }
   | { type: "cancelShare"; requestId: string }
   | { type: "reveal" }
+  | { type: "campaign"; for: string }
+  | { type: "demand"; target: string; kind: DemandKind }
   | { type: "pickHostage"; playerId: string }
   | { type: "bookieCall"; team: WinningTeam };
 
@@ -102,6 +122,7 @@ export type ClientMessage =
   | { type: "leave" }
   | { type: "kick"; playerId: string }
   | { type: "setSpecial"; card: CardId; on: boolean }
+  | { type: "setInfluence"; on: boolean }
   | { type: "deal" }
   | { type: "act"; action: GameAction }
   | { type: "backToLobby" };
