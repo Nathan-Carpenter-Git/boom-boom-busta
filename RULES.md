@@ -1,6 +1,6 @@
 # Boom Boom Busta rules
 
-Status: the Influence section is a draft waiting on the owner; everything else is agreed.
+Status: agreed with the owner.
 The base game follows Two Rooms and a Boom, with our own names.
 
 ## Players and cards
@@ -59,16 +59,17 @@ Any two players in the same room can share, and both must agree:
 After the last exchange, every card is revealed.
 Red wins if the Boss and the Busta are in the same room; otherwise Blue wins.
 
-## Influence (new)
+## Influence
 
 Influence makes every round a budgeting decision.
+The host turns it on or off in the lobby (off by default).
 Influence can't be traded or given to other players.
 
-- Everyone starts with 2 Influence and gains 1 at the start of every round, so 5 across a game.
-- Spending is done in the app, and everyone in the room sees who spent on what (but not what a demand revealed).
-- **Campaign** (1): your leader vote counts double for the rest of this round.
-- **Shield** (2): pick one player in your room, yourself included; they can't be sent as a hostage this round.
-  If the leader had already picked them, the leader must pick someone else.
+- Everyone has 2 Influence at the start of the game and gains 1 at the start of rounds 2 and 3, so 4 across a game.
+- Everyone can see how much Influence each player in their room has.
+- Spending is done in the app during the leader vote or a round, and everyone in the room sees who spent on what (but not what a demand revealed).
+- **Campaign** (1): pick another player in your room (never yourself); your vote goes to them and counts as 2 votes for the rest of this round.
+  Changing your vote ends the Campaign, with no refund.
 - **Demand color** (2): one player in your room must show you their team color; you show nothing back.
 - **Demand card** (4): one player in your room must show you their whole card; you show nothing back.
 - Unspent Influence is worth nothing at the end.
