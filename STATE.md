@@ -5,7 +5,7 @@ A browser version of Two Rooms and a Boom with our own cards and art: two teams 
 New cards add more bluffing and social manipulation than the original.
 
 ## Now
-- Lobby done; owner wants a redesign of the core rules for replayability; core loop ideas sent, waiting on their pick.
+- Lobby done; owner wants deeper, more strategic rules; rule packages sent, waiting on their pick.
 
 ## Next
 - Round loop: room timers, leader election and usurping, hostage picks and the simultaneous exchange, card share and color share, the final reveal and winner.
@@ -24,5 +24,5 @@ New cards add more bluffing and social manipulation than the original.
 
 ## Open questions
 - Do players sit in two real rooms with phones as cards, or play fully online over voice (in-app room chat, or two Discord voice channels)?
-- 2026-10-04: owner says the plain rules are too much "trade cards and hope", and reveal-based cards die once seen. Proposed: no card showing (handshakes only, which some roles can lie on), a public role list per game, a bomb that can be passed secretly, a final defuse guess, and secret side goals with points across a session. Waiting on which of these to keep.
+- 2026-10-04: owner keeps color share and card share, rejected most of the bluffing ideas, and wants the rules changed to be deeper and more strategic. Proposed three rule packages (Influence tokens, Leader powers, The Building with 3+ rooms); recommended Influence plus Leader powers. Waiting on their pick.
 - Should pushes to `main` auto-deploy on Render (if so, switch to branches and pull requests)?
