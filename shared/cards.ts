@@ -83,7 +83,7 @@ export const TEAM_LABEL: Record<Team, string> = {
 
 /** Special cards the host can turn on and off in the lobby, in display order. */
 export const SPECIAL_CARDS: CardId[] = ["bookie", "truth-teller", "liar"];
-export const DEFAULT_SPECIALS: CardId[] = ["bookie"];
+export const DEFAULT_SPECIALS: CardId[] = [];
 
 /** One line rule for each special card, shown in the lobby. */
 export const SPECIAL_RULES: Partial<Record<CardId, string>> = {

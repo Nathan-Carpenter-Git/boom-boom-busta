@@ -53,8 +53,9 @@ describe("lobby", () => {
   it("lets only the host pick the special cards, between games, and keeps them from game to game", () => {
     const { lobbies, lobby, host } = fullLobby(6);
     const guest = lobby.players[1].id;
-    expect(lobbies.view(lobby, guest).settings.specials).toEqual(["bookie"]);
+    expect(lobbies.view(lobby, guest).settings.specials).toEqual([]);
     expect(() => lobbies.setSpecial(lobby, guest, "liar", true)).toThrow("Only the host");
+    lobbies.setSpecial(lobby, host.id, "bookie", true);
     lobbies.setSpecial(lobby, host.id, "liar", true);
     lobbies.setSpecial(lobby, host.id, "truth-teller", true);
     lobbies.setSpecial(lobby, host.id, "liar", true);
