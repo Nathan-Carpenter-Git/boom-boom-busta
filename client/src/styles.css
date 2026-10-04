@@ -116,6 +116,15 @@ input {
   margin: 0 0 16px;
 }
 
+.rules-link {
+  text-align: center;
+  margin: -6px 0 16px;
+}
+.rules-link a {
+  color: var(--gold);
+  font-weight: 600;
+}
+
 .notice {
   text-align: center;
   color: var(--gold);

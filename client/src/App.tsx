@@ -8,6 +8,7 @@ import { GameScreen } from "./Game";
 import { loadName, saveName } from "./session";
 
 const params = new URLSearchParams(location.search);
+const RULES_URL = "https://github.com/Nathan-Carpenter-Git/boom-boom-busta/blob/main/RULES.md";
 
 export function App() {
   const conn = useConnection();
@@ -76,6 +77,11 @@ function Home({ conn }: { conn: Connection }) {
         <CardFace id="busta" className="fan-card right" />
       </div>
       <p className="pitch">Two teams. Two rooms. One Busta who has to end up next to the Boss.</p>
+      <p className="rules-link">
+        <a href={RULES_URL} target="_blank" rel="noopener noreferrer">
+          How to play
+        </a>
+      </p>
       {conn.notice && <p className="notice">{conn.notice}</p>}
       <form className="panel" onSubmit={(e) => submit(e, code.length === 4 ? "join" : "create")}>
         <label>

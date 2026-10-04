@@ -1,83 +1,112 @@
-# Boom Boom Busta rules
+# How to play Boom Boom Busta
 
-Status: agreed with the owner.
-The base game follows Two Rooms and a Boom, with our own names.
+Two teams, two rooms, and one bomb.
+Red wants **the Busta** to end the game in the same room as **the Boss**.
+Blue wants to keep them apart.
+Nobody knows who is who, so you'll have to talk, trade, bluff and vote your way to a win.
 
-## Players and cards
+## What you need
 
-- 6 to 30 players.
-- Blue team protects **the Boss**.
-  Red team wants **the Busta** to end the game in the same room as the Boss.
-- The host picks which special cards are in the deck, in the lobby, before any game; any mix is allowed whatever the player count.
-  Everyone in the lobby sees which special cards are turned on.
-- Dealing: the Boss and the Busta are always dealt.
-  If more special cards are turned on than there are other seats, the app picks which ones at random.
-  Every seat left after that gets Blue Crew or Red Crew.
-- Teams are kept as even as possible: a special card that can be on either team goes to the smaller team (random on a tie), and Crew cards fill the rest.
-  When the teams can't be equal, the extra player goes to a random team.
-- Special cards, all off by default: **the Bookie** (no team), **the Truth Teller** and **the Liar** (either team).
-- The Bookie calls which team will win before the last hostage exchange, and wins if the call is right.
-- Every player sees only their own card.
+- 6 to 30 players, each with a phone or computer.
+- A way to talk in two separate groups: two real rooms if you're together, or two voice channels if you're online.
+- One player creates a lobby and shares the 4 letter code or the invite link; everyone else joins with it.
 
-## Rooms
+## The cards
 
-- Players are split at random into two rooms, **The Basement** and **The Rooftop**, as evenly as possible.
-- Players talk only with their own room (in the same place: two real rooms; online: one voice channel per room).
+Everyone gets one secret card.
+
+- **The Boss** (Blue): Blue's VIP. Blue wins if the Boss ends the game in a different room from the Busta.
+- **The Busta** (Red): Red's bomber. Red wins if the Busta ends the game in the same room as the Boss.
+- **Blue Crew** and **Red Crew**: everyone else, helping their team.
+
+The Boss and the Busta are always in the game.
+Every other player gets a Crew card, unless the host turned on special cards (see below).
+Teams are kept as even as possible.
+
+## Setup
+
+When the host deals, the app splits everyone at random into two rooms, **The Basement** and **The Rooftop**.
+You can only talk with the players in your room.
+
+## Leaders
+
+Each room has a leader, who decides which players get sent to the other room.
+
+- At the start of the game, everyone votes in the app for a leader in their room.
+  The first player backed by more than half the room becomes leader.
+  If nobody gets there within a minute, the player with the most votes becomes leader (ties are broken at random).
+- You can change your vote at any time.
+  If someone other than the leader is backed by more than half the room, they take over immediately.
+- Leaders can never be sent to the other room.
 
 ## Rounds
 
 The game has 3 rounds, of 3, 2 and 1 minutes.
-Hostages sent from each room per round:
+During each round, talk, share cards, and work out who's who.
 
-- 6 to 10 players: 1, 1, 1.
-- 11 to 21 players: 2, 1, 1.
-- 22 to 30 players: 3, 2, 1.
+At the end of every round, each room sends hostages to the other room:
 
-## Leaders
+- 6 to 10 players: 1 hostage per room in every round.
+- 11 to 21 players: 2, then 1, then 1.
+- 22 to 30 players: 3, then 2, then 1.
 
-- Each room has one leader.
-- At the start of round 1, each player votes in the app for someone in their room; the first player to reach a majority of the room becomes leader.
-- The leader stays leader in later rounds unless the room usurps them: any time during a round, a majority of the room voting for someone else makes that player leader.
-- Leaders choose their room's hostages and can never be sent as hostages themselves.
+The leader picks the hostages in the app, and the whole room can see who is picked.
+The leader can change the picks until time runs out.
+If the leader hasn't picked enough, the app picks the rest at random.
+Both rooms swap their hostages at the same time.
 
 ## Sharing
 
-Any two players in the same room can share, and both must agree:
+You can ask anyone in your room to share, and they can say yes or no.
 
-- **Color share**: each sees the other's team color.
-- **Card share**: each sees the other's whole card.
-- **Public reveal**: a player can show their whole card to everyone in their room.
+- **Color share**: you both see each other's team color.
+- **Card share**: you both see each other's whole card.
+- **Show my card to the room**: everyone in your room sees your whole card.
 
-## Hostage exchange
-
-- During the round, the leader picks the hostages in the app; the room can see who is picked, and the leader can change picks until the timer ends.
-- If the leader has not picked enough when the timer ends, the app fills the gap at random.
-- When both timers end, the hostages swap rooms at the same time.
+Everything you learn stays on your screen under **What I know**.
+Sharing is always honest: the app shows the real card.
+What people *say* is another matter.
 
 ## Winning
 
-After the last exchange, every card is revealed.
-Red wins if the Boss and the Busta are in the same room; otherwise Blue wins.
+After the last hostage swap, every card is revealed.
+**Red wins** if the Boss and the Busta are in the same room.
+**Blue wins** if they are in different rooms.
+
+## Special cards
+
+The host can turn on any mix of special cards in the lobby, whatever the number of players.
+If more special cards are on than there are seats, the app picks which ones are dealt at random.
+During the game, everyone can see which special cards *might* be in play, but not which ones were dealt.
+
+- **The Bookie** (no team): during the last round, secretly call which team will win.
+  You win if your call is right.
+- **The Truth Teller** (Red or Blue): you may only say true things for the whole game.
+- **The Liar** (Red or Blue): you may only say false things for the whole game.
+
+The Truth Teller and the Liar each join whichever team is smaller when the cards are dealt, and their card shows their team color.
+What they say is on the honor system, but shares always show the truth.
+Once you've seen someone's Liar card, everything they say is useful: just flip it.
 
 ## Influence
 
-Influence makes every round a budgeting decision.
-The host turns it on or off in the lobby (off by default).
-Influence can't be traded or given to other players.
+The host can turn on Influence in the lobby.
+It gives every player a small budget to bend the rules.
 
-- Everyone has 2 Influence at the start of the game and gains 1 at the start of rounds 2 and 3, so 4 across a game.
-- Everyone can see how much Influence each player in their room has.
-- Spending is done in the app during the leader vote or a round, and everyone in the room sees who spent on what (but not what a demand revealed).
-- **Campaign** (1): pick another player in your room (never yourself); your vote goes to them and counts as 2 votes for the rest of this round.
-  Changing your vote ends the Campaign, with no refund.
-- **Demand color** (2): one player in your room must show you their team color; you show nothing back.
-- **Demand card** (4): one player in your room must show you their whole card; you show nothing back.
-- Unspent Influence is worth nothing at the end.
+- You start with 2 Influence and gain 1 more at the start of rounds 2 and 3.
+- Everyone in your room can see how much Influence each player has.
+- Everyone in your room sees who spent Influence and on what, but not what a demand revealed.
+- You can't trade or give Influence away, and any left at the end is worth nothing.
 
-## Truth Teller and Liar
+What you can spend it on:
 
-- Each one is on Red or Blue, decided when the cards are dealt (see Dealing); the card shows its team color.
-- The Truth Teller must say only true things for the whole game.
-  The Liar must say only false things for the whole game.
-- Speech is on the honor system; the app reminds them of their rule on their card.
-- Shares and reveals always show the truth, so someone who has seen a Liar's card knows to flip everything that player says.
+- **Campaign** (1): back another player in your room for leader (never yourself).
+  Your vote counts as 2 votes for the rest of the round, or until you change it.
+- **Demand color** (2): one player in your room must show you their team color, and you show nothing back.
+- **Demand card** (4): one player in your room must show you their whole card, and you show nothing back.
+
+## If someone drops out
+
+If you lose your connection or reload the page, you keep your seat for 3 minutes and rejoin automatically.
+If you're gone longer, your card stays in the game (so the Boss or the Busta leaving doesn't end it), and you can still be sent as a hostage.
+If a leader leaves, their room votes again.
