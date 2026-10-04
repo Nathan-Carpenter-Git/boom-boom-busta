@@ -5,14 +5,14 @@ A browser version of Two Rooms and a Boom with our own cards and art: two teams 
 New cards add more bluffing and social manipulation than the original.
 
 ## Now
-- Worker `influence` builds Influence (lobby switch, Campaign, Demand color, Demand card).
+- Influence merged; next: ask the owner what to build next (Render deploy, more special cards, polish).
 
 ## Next
-- Review and merge `work/influence`.
 - After the owner approves RULES.md: build Influence, then the Truth Teller and Liar.
 - Render deploy once the owner connects the repo (render.yaml is ready).
 
 ## Done
+- 2026-10-04: merged Influence (lobby switch, Campaign never for yourself, Demand color, Demand card, spend log, two-tap spends); 58 tests.
 - 2026-10-04: merged host-picked special cards (lobby switches, `dealCards` in `shared/cards.ts`, dealt card is card plus team) and the Truth Teller and Liar with art; all specials off by default so default games keep even teams; 45 tests.
 - 2026-10-04: merged the base round loop (`server/game.ts`, `client/src/Game.tsx`): leader vote and usurp, shares, public reveal, hostages, Bookie, results; 31 tests; `make play` plays a six phone game and saves screens to `build/play/`.
 - 2026-10-04: fixed gaps inside words on the home cards (Chrome glyph snapping; `text-rendering: geometricPrecision`) and spread the card fan.
