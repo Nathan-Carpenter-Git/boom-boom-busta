@@ -1,40 +1,32 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { buildDeck, type CardId } from "../shared/cards.js";
-import type { LobbyView, ServerMessage } from "../shared/protocol.js";
+import { buildDeck } from "../shared/cards.js";
+import type { GameAction, LobbyView, ServerMessage } from "../shared/protocol.js";
 import { MAX_NAME_LENGTH, MAX_PLAYERS, MIN_PLAYERS, type RoomIndex } from "../shared/rules.js";
+import { Game, type GameOptions } from "./game.js";
+import { LobbyError, shuffle } from "./util.js";
+
+export { LobbyError, shuffle };
 
 export type Send = (message: ServerMessage) => void;
-
-export class LobbyError extends Error {}
 
 interface Player {
   id: string;
   token: string;
   name: string;
   send: Send | null;
-  card: CardId | null;
-  room: RoomIndex | null;
 }
 
 export interface Lobby {
   code: string;
   hostId: string;
-  phase: "lobby" | "dealt";
+  phase: "lobby" | "game";
   players: Player[];
+  game: Game | null;
 }
 
 // No I or O, so codes read cleanly out loud and on a phone screen.
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const CODE_LENGTH = 4;
-
-export function shuffle<T>(items: T[], random = Math.random): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
 
 function cleanName(raw: unknown): string {
   const name = typeof raw === "string" ? raw.replace(/\s+/g, " ").trim().slice(0, MAX_NAME_LENGTH) : "";
@@ -44,8 +36,13 @@ function cleanName(raw: unknown): string {
 
 export class LobbyManager {
   private lobbies = new Map<string, Lobby>();
+  private timers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  constructor(private readonly minPlayers = MIN_PLAYERS) {}
+  /** `options.timeScale` shortens every game timer (dev and tests); time comes from `Date.now` and `setTimeout`. */
+  constructor(
+    private readonly minPlayers = MIN_PLAYERS,
+    private readonly options: GameOptions = {},
+  ) {}
 
   get lobbyCount(): number {
     return this.lobbies.size;
@@ -61,7 +58,7 @@ export class LobbyManager {
       code = Array.from(randomBytes(CODE_LENGTH), (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
     } while (this.lobbies.has(code));
     const player = this.newPlayer(name, send);
-    const lobby: Lobby = { code, hostId: player.id, phase: "lobby", players: [player] };
+    const lobby: Lobby = { code, hostId: player.id, phase: "lobby", players: [player], game: null };
     this.lobbies.set(code, lobby);
     return { lobby, player };
   }
@@ -101,13 +98,18 @@ export class LobbyManager {
   remove(lobby: Lobby, playerId: string): boolean {
     lobby.players = lobby.players.filter((p) => p.id !== playerId);
     if (lobby.players.length === 0) {
+      this.stopTimer(lobby);
       this.lobbies.delete(lobby.code);
       return true;
     }
     if (lobby.hostId === playerId) {
       lobby.hostId = (lobby.players.find((p) => p.send) ?? lobby.players[0]).id;
     }
-    if (lobby.phase === "dealt") this.backToLobby(lobby, lobby.hostId);
+    // Their card stays in play, so the game can still end the way the rules say.
+    if (lobby.game) {
+      lobby.game.depart(playerId, Date.now());
+      this.schedule(lobby);
+    }
     return false;
   }
 
@@ -126,35 +128,43 @@ export class LobbyManager {
     const count = lobby.players.length;
     if (count < this.minPlayers) throw new LobbyError(`You need at least ${this.minPlayers} players`);
     const deck = shuffle(buildDeck(count), random);
-    const seating = shuffle(lobby.players, random);
-    seating.forEach((player, i) => {
-      player.card = deck[i];
-      player.room = (i % 2) as RoomIndex;
-    });
-    lobby.phase = "dealt";
+    const seating = shuffle(lobby.players, random).map((p, i) => ({
+      id: p.id,
+      name: p.name,
+      card: deck[i],
+      room: (i % 2) as RoomIndex,
+    }));
+    lobby.game = new Game(seating, Date.now(), { random, ...this.options });
+    lobby.phase = "game";
+    this.schedule(lobby);
+  }
+
+  /** A game action from a player; the caller broadcasts afterwards. */
+  act(lobby: Lobby, byId: string, action: GameAction): void {
+    if (!lobby.game) throw new LobbyError("The game hasn't started");
+    if (typeof action !== "object" || action === null) throw new LobbyError("Unknown action");
+    lobby.game.act(byId, action, Date.now());
+    this.schedule(lobby);
   }
 
   backToLobby(lobby: Lobby, byId: string): void {
     this.requireHost(lobby, byId);
+    this.stopTimer(lobby);
     lobby.phase = "lobby";
-    for (const p of lobby.players) {
-      p.card = null;
-      p.room = null;
-    }
+    lobby.game = null;
   }
 
   view(lobby: Lobby, forId: string): LobbyView {
-    const me = lobby.players.find((p) => p.id === forId);
-    const dealt = lobby.phase === "dealt";
-    const roomOf = (room: RoomIndex) => lobby.players.filter((p) => p.room === room).map((p) => p.id);
+    const now = Date.now();
+    const me = lobby.game?.players.find((p) => p.id === forId);
     return {
       code: lobby.code,
       hostId: lobby.hostId,
       phase: lobby.phase,
       minPlayers: this.minPlayers,
       players: lobby.players.map((p) => ({ id: p.id, name: p.name, connected: p.send !== null })),
-      you: dealt && me?.card && me.room !== null ? { card: me.card, room: me.room } : null,
-      rooms: dealt ? [roomOf(0), roomOf(1)] : null,
+      you: me ? { card: me.card, room: me.room } : null,
+      game: lobby.game ? lobby.game.view(forId, now) : null,
     };
   }
 
@@ -162,8 +172,31 @@ export class LobbyManager {
     for (const p of lobby.players) p.send?.({ type: "lobby", lobby: this.view(lobby, p.id) });
   }
 
+  /** Wakes up when the current game phase ends, moves the game on and tells everyone. */
+  private schedule(lobby: Lobby): void {
+    this.stopTimer(lobby);
+    const endsAt = lobby.game?.endsAt;
+    if (endsAt == null) return;
+    const timer = setTimeout(
+      () => {
+        this.timers.delete(lobby.code);
+        if (this.lobbies.get(lobby.code) !== lobby || !lobby.game) return;
+        if (lobby.game.advance(Date.now())) this.broadcast(lobby);
+        this.schedule(lobby);
+      },
+      Math.max(0, endsAt - Date.now()),
+    );
+    timer.unref?.();
+    this.timers.set(lobby.code, timer);
+  }
+
+  private stopTimer(lobby: Lobby): void {
+    clearTimeout(this.timers.get(lobby.code));
+    this.timers.delete(lobby.code);
+  }
+
   private newPlayer(name: string, send: Send): Player {
-    return { id: randomUUID(), token: randomUUID(), name: cleanName(name), send, card: null, room: null };
+    return { id: randomUUID(), token: randomUUID(), name: cleanName(name), send };
   }
 
   private requireHost(lobby: Lobby, playerId: string): void {
