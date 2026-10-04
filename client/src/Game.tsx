@@ -454,10 +454,10 @@ function SpendActions({ game, me, act, target }: ScreenProps & { target: string 
               act(kind === "campaign" ? { type: "campaign", for: target } : { type: "demand", target, kind });
             }}
           >
-            <span>{confirming ? "Tap to spend" : label}</span>
+            <span>{label}</span>
             <span className="spend-sub">
               <InfluenceCoin className="coin" />
-              {reason ?? cost}
+              {confirming ? `${cost}, tap again` : (reason ?? cost)}
             </span>
           </button>
         );
