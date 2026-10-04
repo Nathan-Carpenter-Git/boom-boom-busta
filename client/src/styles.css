@@ -16,13 +16,26 @@
   box-sizing: border-box;
 }
 
+/* The glow sits on its own fixed layer: background-attachment: fixed is ignored on iPhones and
+   left a seam on long pages. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% -10%, #3a1630 0, transparent 45%),
+    radial-gradient(circle at 90% 0, #142a5a 0, transparent 45%);
+}
+
+html {
+  background: var(--bg);
+}
+
 html,
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at 20% -10%, #3a1630 0, transparent 45%),
-    radial-gradient(circle at 90% 0, #142a5a 0, transparent 45%), var(--bg);
-  background-attachment: fixed;
   color: var(--text);
   font-family: Rubik, system-ui, sans-serif;
   min-height: 100dvh;
@@ -842,4 +855,30 @@ svg text {
   background: var(--panel);
   border-radius: 12px;
   padding: 6px 10px;
+}
+
+.invited {
+  margin: 0;
+  text-align: center;
+  color: var(--gold);
+}
+
+.lobby-id {
+  min-width: 0;
+}
+.lobby-link {
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lobby-head {
+  gap: 12px;
+}
+.lobby-head .btn {
+  flex: none;
+}
+.btn.copied {
+  background: #2fae5a;
 }

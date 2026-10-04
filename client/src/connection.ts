@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, LobbyView, ServerMessage } from "../../shared/protocol";
+import { codeFromUrl, showLobbyInUrl } from "./lobbyLink";
 import { loadSession, saveSession } from "./session";
 
 export type Status = "connecting" | "waking" | "open";
@@ -47,7 +48,10 @@ export function useConnection(): Connection {
         clearTimeout(wakingTimer);
         setStatus("open");
         const session = loadSession();
-        if (session) ws.send(JSON.stringify({ type: "resume", ...session } satisfies ClientMessage));
+        // Opening another lobby's link means the player wants that lobby, not their old seat.
+        const linked = codeFromUrl();
+        if (session && (!linked || linked === session.code))
+          ws.send(JSON.stringify({ type: "resume", ...session } satisfies ClientMessage));
       };
 
       ws.onmessage = (event) => {
@@ -55,6 +59,7 @@ export function useConnection(): Connection {
         switch (msg.type) {
           case "joined":
             saveSession({ code: msg.lobby.code, playerId: msg.playerId, token: msg.token });
+            showLobbyInUrl(msg.lobby.code);
             setPlayerId(msg.playerId);
             setLobby(msg.lobby);
             setError(null);
@@ -64,6 +69,7 @@ export function useConnection(): Connection {
             return;
           case "kicked":
             saveSession(null);
+            showLobbyInUrl(null);
             setLobby(null);
             setPlayerId(null);
             setNotice("The host removed you from the lobby.");
@@ -71,6 +77,7 @@ export function useConnection(): Connection {
           case "error":
             if (msg.fatal) {
               saveSession(null);
+              showLobbyInUrl(null);
               setLobby(null);
               setPlayerId(null);
               setNotice("That game ended while you were away.");
@@ -114,6 +121,7 @@ export function useConnection(): Connection {
     else setError("Not connected yet, try again in a moment");
     if (msg.type === "leave") {
       saveSession(null);
+      showLobbyInUrl(null);
       setLobby(null);
       setPlayerId(null);
     }

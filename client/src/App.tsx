@@ -5,6 +5,7 @@ import { MAX_NAME_LENGTH } from "../../shared/rules";
 import { CardBack, CardFace, InfluenceCoin } from "./CardArt";
 import { type Connection, useConnection } from "./connection";
 import { GameScreen } from "./Game";
+import { codeFromUrl, copyText, lobbyLink } from "./lobbyLink";
 import { loadName, saveName } from "./session";
 
 const params = new URLSearchParams(location.search);
@@ -58,7 +59,8 @@ function Logo() {
 
 function Home({ conn }: { conn: Connection }) {
   const [name, setName] = useState(loadName);
-  const [code, setCode] = useState((params.get("code") ?? "").toUpperCase().slice(0, 4));
+  const [linked] = useState(codeFromUrl);
+  const [code, setCode] = useState(linked ?? "");
   const ready = conn.status === "open";
 
   const submit = (event: FormEvent, action: "create" | "join") => {
@@ -84,6 +86,11 @@ function Home({ conn }: { conn: Connection }) {
       </p>
       {conn.notice && <p className="notice">{conn.notice}</p>}
       <form className="panel" onSubmit={(e) => submit(e, code.length === 4 ? "join" : "create")}>
+        {linked && (
+          <p className="invited">
+            You're invited to lobby <strong>{linked}</strong>
+          </p>
+        )}
         <label>
           Your name
           <input
@@ -93,50 +100,60 @@ function Home({ conn }: { conn: Connection }) {
             autoComplete="nickname"
           />
         </label>
-        <button
-          type="button"
-          className="btn hot"
-          disabled={!ready || !name.trim()}
-          onClick={(e) => submit(e, "create")}
-        >
-          Create a lobby
-        </button>
-        <div className="or">or join one</div>
-        <div className="join-row">
-          <input
-            className="code-input"
-            value={code}
-            placeholder="CODE"
-            aria-label="Lobby code"
-            maxLength={4}
-            autoCapitalize="characters"
-            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))}
-          />
-          <button
-            type="button"
-            className="btn"
-            disabled={!ready || !name.trim() || code.length !== 4}
-            onClick={(e) => submit(e, "join")}
-          >
-            Join
-          </button>
-        </div>
+        {linked ? (
+          <>
+            <button
+              type="button"
+              className="btn hot"
+              disabled={!ready || !name.trim()}
+              onClick={(e) => submit(e, "join")}
+            >
+              Join lobby {linked}
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={!ready || !name.trim()}
+              onClick={(e) => submit(e, "create")}
+            >
+              Create a new lobby instead
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="btn hot"
+              disabled={!ready || !name.trim()}
+              onClick={(e) => submit(e, "create")}
+            >
+              Create a lobby
+            </button>
+            <div className="or">or join one with its code</div>
+            <div className="join-row">
+              <input
+                className="code-input"
+                value={code}
+                placeholder="CODE"
+                aria-label="Lobby code"
+                maxLength={4}
+                autoCapitalize="characters"
+                onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))}
+              />
+              <button
+                type="button"
+                className="btn"
+                disabled={!ready || !name.trim() || code.length !== 4}
+                onClick={(e) => submit(e, "join")}
+              >
+                Join
+              </button>
+            </div>
+          </>
+        )}
       </form>
     </section>
   );
-}
-
-function inviteLink(code: string) {
-  return `${location.origin}/?code=${code}`;
-}
-
-async function copy(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; me: string }) {
@@ -144,29 +161,22 @@ function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; 
   const isHost = lobby.hostId === me;
   const missing = Math.max(0, lobby.minPlayers - lobby.players.length);
 
-  const share = async () => {
-    const link = inviteLink(lobby.code);
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Boom Boom Busta", text: `Join my game, code ${lobby.code}`, url: link });
-        return;
-      } catch {
-        // Fall back to copying.
-      }
-    }
-    setCopied(await copy(link));
+  const link = lobbyLink(lobby.code);
+  const copyLink = async () => {
+    setCopied(await copyText(link));
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <section className="lobby">
       <header className="lobby-head">
-        <div>
-          <div className="label">Lobby code</div>
+        <div className="lobby-id">
+          <div className="label">Lobby</div>
           <div className="code">{lobby.code}</div>
+          <div className="lobby-link">{link.replace(/^https?:\/\//, "")}</div>
         </div>
-        <button type="button" className="btn small" onClick={share}>
-          {copied ? "Link copied" : "Invite"}
+        <button type="button" className={copied ? "btn small copied" : "btn small"} onClick={copyLink}>
+          {copied ? "Copied!" : "Copy link"}
         </button>
       </header>
 
@@ -201,7 +211,7 @@ function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; 
 
       <p className="hint">
         {missing > 0
-          ? `Waiting for ${missing} more player${missing === 1 ? "" : "s"}. Share the code or the invite link.`
+          ? `Waiting for ${missing} more player${missing === 1 ? "" : "s"}. Copy the link and send it to your friends.`
           : isHost
             ? "Everyone in? Deal the cards."
             : "Waiting for the host to deal the cards."}

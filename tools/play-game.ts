@@ -69,16 +69,20 @@ async function main() {
     await host.getByLabel("Your name").fill(NAMES[0]);
     await host.getByRole("button", { name: "Create a lobby" }).click();
     const code = (await host.locator(".code").textContent()) ?? "";
+    // The host's address bar is the lobby link; guests join through it.
+    await host.waitForURL(`${URL}/${code}`);
+    const link = host.url();
     for (const [i, page] of pages.entries()) {
       if (i === 0) continue;
-      await page.goto(`${URL}/?code=${code}`);
+      await page.goto(link);
       await page.getByLabel("Your name").fill(NAMES[i]);
-      await page.getByRole("button", { name: "Join" }).click();
+      if (i === 1) await shot(page, "0-invited");
+      await page.getByRole("button", { name: `Join lobby ${code}` }).click();
       await page.locator(".code").waitFor();
     }
     await host.getByText(`Players ${PLAYERS}`).waitFor();
-    // Turn on every special card; the Bookie starts on.
-    for (const name of ["The Truth Teller", "The Liar"]) {
+    // Turn on every special card (they all start off).
+    for (const name of ["The Bookie", "The Truth Teller", "The Liar"]) {
       await host.getByRole("switch", { name }).click();
       await pages[1].locator(".specials li.on", { hasText: name }).waitFor();
     }
