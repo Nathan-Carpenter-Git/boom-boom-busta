@@ -77,11 +77,24 @@ async function main() {
       await page.locator(".code").waitFor();
     }
     await host.getByText(`Players ${PLAYERS}`).waitFor();
+    // Turn on every special card; the Bookie starts on.
+    for (const name of ["The Truth Teller", "The Liar"]) {
+      await host.getByRole("switch", { name }).click();
+      await pages[1].locator(".specials li.on", { hasText: name }).waitFor();
+    }
+    await shot(host, "0-lobby-host");
+    await shot(pages[1], "0-lobby-guest");
     await host.getByRole("button", { name: "Deal cards" }).click();
 
     // Leader vote: everyone backs the first player listed in their room.
     await Promise.all(pages.map((p) => p.locator(".room-players").waitFor()));
     await shot(pages[1], "1-vote");
+    // Peek at the Liar's card, an either-team special.
+    for (const page of pages) {
+      await page.locator(".card-button").click();
+      if ((await page.locator(".goal", { hasText: "The Liar" }).count()) > 0) await shot(page, "1-liar-card");
+      await page.locator(".card-button").click();
+    }
     for (const page of pages) {
       await page.locator(".room-players .row-main").first().click();
       await page.locator(".row-actions .btn").first().click();

@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { CARDS, type CardId } from "../../shared/cards";
+import { CARDS, type CardId, dealSummary, SPECIAL_CARDS, SPECIAL_RULES } from "../../shared/cards";
 import type { LobbyView } from "../../shared/protocol";
 import { MAX_NAME_LENGTH } from "../../shared/rules";
 import { CardBack, CardFace } from "./CardArt";
@@ -27,6 +27,7 @@ export function App() {
           game={conn.lobby.game}
           me={conn.playerId}
           card={conn.lobby.you.card}
+          team={conn.lobby.you.team}
           room={conn.lobby.you.room}
         />
       ) : conn.lobby && conn.playerId ? (
@@ -189,6 +190,8 @@ function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; 
           </li>
         ))}
       </ul>
+      <SpecialCards conn={conn} lobby={lobby} isHost={isHost} />
+
       <p className="hint">
         {missing > 0
           ? `Waiting for ${missing} more player${missing === 1 ? "" : "s"}. Share the code or the invite link.`
@@ -211,12 +214,55 @@ function LobbyScreen({ conn, lobby, me }: { conn: Connection; lobby: LobbyView; 
   );
 }
 
+function SpecialCards({ conn, lobby, isHost }: { conn: Connection; lobby: LobbyView; isHost: boolean }) {
+  const { specials } = lobby.settings;
+  const count = Math.max(lobby.players.length, lobby.minPlayers);
+  return (
+    <>
+      <h2>Special cards</h2>
+      <ul className="specials">
+        {SPECIAL_CARDS.map((id) => {
+          const on = specials.includes(id);
+          return (
+            <li key={id} className={on ? "on" : ""}>
+              <CardFace id={id} className="special-card" />
+              <span className="special-text">
+                <strong>{CARDS[id].name}</strong>
+                <span>{SPECIAL_RULES[id]}</span>
+              </span>
+              {isHost ? (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  aria-label={CARDS[id].name}
+                  className="switch"
+                  onClick={() => conn.send({ type: "setSpecial", card: id, on: !on })}
+                />
+              ) : (
+                <span className="tag">{on ? "on" : "off"}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="hint deal-summary">{dealSummary(count, specials)}</p>
+    </>
+  );
+}
+
 function CardGallery() {
   return (
     <main className="gallery">
-      {(Object.keys(CARDS) as CardId[]).map((id) => (
-        <CardFace key={id} id={id} className="gallery-card" />
-      ))}
+      {(Object.keys(CARDS) as CardId[]).flatMap((id) =>
+        CARDS[id].team === "either" ? (
+          (["blue", "red"] as const).map((team) => (
+            <CardFace key={`${id}-${team}`} id={id} team={team} className="gallery-card" />
+          ))
+        ) : (
+          <CardFace key={id} id={id} className="gallery-card" />
+        ),
+      )}
       <CardBack className="gallery-card" />
     </main>
   );
