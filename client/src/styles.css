@@ -494,6 +494,18 @@ h2 {
   padding: 4px 6px;
   cursor: pointer;
 }
+.row-main .pname {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+.row-main .tag {
+  margin-left: 0;
+}
+.pname-text {
+  white-space: nowrap;
+}
 .row-main:disabled {
   cursor: default;
 }
@@ -608,7 +620,7 @@ h2 {
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: 10px;
 }
 .reveal-grid li {

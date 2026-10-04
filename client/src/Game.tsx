@@ -229,7 +229,7 @@ function Room({ connected, ...props }: ScreenProps & { connected: LobbyView["pla
           </div>
           <span className="hint left">
             {game.bookieCall
-              ? `You called ${game.bookieCall}. You can change it until 0:00.`
+              ? `You called ${game.bookieCall === "red" ? "Red" : "Blue"}. You can change it until 0:00.`
               : "No call means you lose."}
           </span>
         </div>
@@ -248,18 +248,16 @@ function Room({ connected, ...props }: ScreenProps & { connected: LobbyView["pla
 
       {picking && (
         <div className={`hostage-panel${amLeader ? " mine" : ""}`}>
-          {amLeader ? (
-            <>
-              Send {plural(need, "hostage")} to {ROOM_NAMES[otherRoom(room)]}: tap <strong>Send</strong> below.
-            </>
-          ) : (
-            "Hostages picked:"
-          )}{" "}
-          <strong>
-            {game.hostages.length > 0 ? game.hostages.map(nameOf).join(", ") : amLeader ? "" : "nobody yet"}
-          </strong>
+          <div>
+            {amLeader ? "You send" : "The leader sends"} {plural(need, "hostage")} to {ROOM_NAMES[otherRoom(room)]}.
+          </div>
+          <div>
+            Picked: <strong>{game.hostages.length > 0 ? game.hostages.map(nameOf).join(", ") : "nobody yet"}</strong>
+          </div>
           {game.hostages.length < need && (
-            <div className="hint left">At 0:00 the app picks any missing hostages at random.</div>
+            <div className="hint left">
+              {amLeader ? "Tap Send next to a player. " : ""}At 0:00 the app picks any missing hostages at random.
+            </div>
           )}
         </div>
       )}
@@ -275,7 +273,7 @@ function Room({ connected, ...props }: ScreenProps & { connected: LobbyView["pla
               <button type="button" className="row-main" onClick={() => setOpen(expanded ? null : id)} disabled={gone}>
                 <span className="avatar">{nameOf(id).slice(0, 1).toUpperCase()}</span>
                 <span className="pname">
-                  {nameOf(id)}
+                  <span className="pname-text">{nameOf(id)}</span>
                   {id === me && <span className="tag">you</span>}
                   {id === leader && <span className="tag host">leader</span>}
                   {hostage && <span className="tag hot">hostage</span>}
