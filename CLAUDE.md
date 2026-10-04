@@ -14,9 +14,13 @@ Record the choices under `## Decisions` in STATE.md.
 
 ## Commands
 
-<The lead fills these in during the first milestone.>
-- Dev server: `npm run dev`
-- Everything before a merge: `make check`
+- Setup: `npm ci`.
+- Dev server: `npm run dev` (game server on 8080 with `tsx watch`, Vite client on 5173 proxying `/ws`).
+  `MIN_PLAYERS=2 npm run dev` lowers the six player minimum for local testing.
+- Everything before a merge: `make check` (Biome lint, Vitest, production build, phone capture).
+- Format: `npm run format`.
+- Card gallery for art review: open `/?cards`.
+- Production: `npm run build && npm start` serves the client and the WebSocket from one port (`PORT`), as on Render.
 
 ## Assets
 
@@ -25,4 +29,12 @@ Serve them from the build (for example Vite's `public/` pointing at `art/`), kee
 
 ## Game notes
 
-<The lead fills this in: genre, core loop, controls (keyboard, mouse and touch), target browsers and devices, art direction, and anything a worker must know.>
+- Social deduction party game that follows the Two Rooms and a Boom ruleset exactly, with our own names and art: Blue team protects **the Boss**, Red team's **Busta** must end the last round in the Boss's room; odd player counts add **the Bookie** (grey).
+  Rooms are "The Basement" and "The Rooftop".
+  Never use the original game's card art, card text or logo.
+- Layout: `shared/` (cards, rules, protocol types), `server/` (Node, `ws`, in-memory `LobbyManager`), `client/` (React, Vite), `tests/` (Vitest, including a real socket test).
+- The server is authoritative and sends each player only their own card (`LobbyView.you`); tests check that nothing else leaks.
+- Hosting: Render free tier, one web service (`render.yaml`).
+  It sleeps after about 15 idle minutes, so the client shows a "waking up" banner; lobbies live in memory and vanish on sleep or redeploy; the server pings sockets every 25 s; a dropped player keeps their seat for 3 minutes and resumes with a token from localStorage.
+- Players are mostly on phones: design for touch at 390 px wide first.
+- Card art is SVG drawn in code (`client/src/CardArt.tsx`), one shared frame per card, chunky ink outlines, halftone team colours.
