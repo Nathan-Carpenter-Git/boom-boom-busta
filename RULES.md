@@ -22,6 +22,7 @@ Everyone gets one secret card.
 The Boss and the Busta are always in the game.
 Every other player gets a Crew card, unless the host turned on special cards (see below).
 Teams are kept as even as possible.
+With an odd number of players, one team (picked at random) has one extra player.
 
 ## Setup
 
@@ -79,8 +80,6 @@ The host can turn on any mix of special cards in the lobby, whatever the number 
 If more special cards are on than there are seats, the app picks which ones are dealt at random.
 During the game, everyone can see which special cards *might* be in play, but not which ones were dealt.
 
-- **The Bookie** (no team): during the last round, secretly call which team will win.
-  You win if your call is right.
 - **The Truth Teller** (Red or Blue): you may only say true things for the whole game.
 - **The Liar** (Red or Blue): you may only say false things for the whole game.
 

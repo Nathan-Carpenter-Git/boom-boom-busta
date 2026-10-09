@@ -55,11 +55,11 @@ describe("lobby", () => {
     const guest = lobby.players[1].id;
     expect(lobbies.view(lobby, guest).settings.specials).toEqual([]);
     expect(() => lobbies.setSpecial(lobby, guest, "liar", true)).toThrow("Only the host");
-    lobbies.setSpecial(lobby, host.id, "bookie", true);
-    lobbies.setSpecial(lobby, host.id, "liar", true);
     lobbies.setSpecial(lobby, host.id, "truth-teller", true);
     lobbies.setSpecial(lobby, host.id, "liar", true);
-    lobbies.setSpecial(lobby, host.id, "bookie", false);
+    lobbies.setSpecial(lobby, host.id, "truth-teller", false);
+    lobbies.setSpecial(lobby, host.id, "liar", true);
+    lobbies.setSpecial(lobby, host.id, "truth-teller", true);
     expect(lobbies.view(lobby, guest).settings.specials).toEqual(["truth-teller", "liar"]);
     expect(() => lobbies.setSpecial(lobby, host.id, "boss", false)).toThrow("not a special card");
     expect(() => lobbies.setSpecial(lobby, host.id, "nope" as never, true)).toThrow("not a special card");
@@ -68,8 +68,7 @@ describe("lobby", () => {
     const dealt = lobby.game?.players.map((p) => p.card) ?? [];
     expect(dealt).toContain("truth-teller");
     expect(dealt).toContain("liar");
-    expect(dealt).not.toContain("bookie");
-    expect(() => lobbies.setSpecial(lobby, host.id, "bookie", true)).toThrow("between games");
+    expect(() => lobbies.setSpecial(lobby, host.id, "liar", true)).toThrow("between games");
     expect(lobbies.view(lobby, guest).settings.specials).toEqual(["truth-teller", "liar"]);
     lobbies.backToLobby(lobby, host.id);
     expect(lobbies.view(lobby, guest).settings.specials).toEqual(["truth-teller", "liar"]);
@@ -106,10 +105,9 @@ describe("lobby", () => {
       [
         "boss",
         "busta",
-        "bookie",
         "truth-teller",
         "liar",
-        game.players.find((p) => p.card.endsWith("crew"))?.card,
+        ...game.players.filter((p) => p.card.endsWith("crew")).map((p) => p.card),
       ].sort(),
     );
     for (const p of lobby.players) {
@@ -242,8 +240,6 @@ describe("a whole game through the lobby manager", () => {
         expect(lobbies.view(lobby, d).game?.spends.some((s) => s.by === g)).toBe(false);
       }
       act(e, { type: "campaign", for: d });
-      const bookie = game.players.find((p) => p.card === "bookie");
-      if (round === 2 && bookie) act(bookie.id, { type: "bookieCall", team: "red" });
       act(game.leaders[0] ?? "", { type: "pickHostage", playerId: room(0)[1] });
 
       const before = [room(0), room(1)];
@@ -262,8 +258,7 @@ describe("a whole game through the lobby manager", () => {
     expect(checked).toBeGreaterThan(100);
     const results = lobbies.view(lobby, ids[1]).game?.results;
     expect(results?.cards).toEqual(game.players.map((p) => ({ id: p.id, card: p.card, team: p.team })));
-    expect(results?.cards.map((c) => c.card)).toEqual(expect.arrayContaining(["truth-teller", "liar", "bookie"]));
-    expect(results?.bookie?.call).toBe("red");
+    expect(results?.cards.map((c) => c.card)).toEqual(expect.arrayContaining(["truth-teller", "liar"]));
     const together = game.player(lobby.players.find((p) => game.player(p.id).card === "boss")?.id ?? "").room;
     const busta = game.players.find((p) => p.card === "busta");
     expect(results?.winner).toBe(busta?.room === together ? "red" : "blue");

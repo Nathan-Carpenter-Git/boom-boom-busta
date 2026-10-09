@@ -52,7 +52,6 @@ export interface ResultsView {
   winner: WinningTeam;
   /** Every player's card, revealed at the end. */
   cards: { id: string; card: CardId; team: Team }[];
-  bookie: { id: string; call: WinningTeam | null; won: boolean } | null;
 }
 
 export interface GameView {
@@ -78,8 +77,6 @@ export interface GameView {
   /** Share requests you sent or received. */
   requests: ShareRequest[];
   known: KnownInfo[];
-  /** Only sent to the Bookie, until the results. */
-  bookieCall: WinningTeam | null;
   /** During the moving screen: who arrived in each room in the exchange that just happened. */
   moved: [string[], string[]] | null;
   results: ResultsView | null;
@@ -112,8 +109,7 @@ export type GameAction =
   | { type: "reveal" }
   | { type: "campaign"; for: string }
   | { type: "demand"; target: string; kind: DemandKind }
-  | { type: "pickHostage"; playerId: string }
-  | { type: "bookieCall"; team: WinningTeam };
+  | { type: "pickHostage"; playerId: string };
 
 export type ClientMessage =
   | { type: "create"; name: string }

@@ -72,7 +72,6 @@ export class Game {
   /** Each room leader's current hostage picks. */
   hostages: [string[], string[]] = [[], []];
   requests: ShareRequest[] = [];
-  bookieCall: WinningTeam | null = null;
   /** Who arrived in each room in the last exchange. */
   moved: [string[], string[]] | null = null;
   results: ResultsView | null = null;
@@ -135,8 +134,6 @@ export class Game {
         return this.demand(me, action.target, action.kind);
       case "pickHostage":
         return this.pickHostage(me, action.playerId);
-      case "bookieCall":
-        return this.callWinner(me, action.team);
       default:
         throw new LobbyError("Unknown action");
     }
@@ -201,7 +198,6 @@ export class Game {
       hostages: me ? [...this.hostages[me.room]] : [],
       requests: this.requests.filter((r) => r.from === forId || r.to === forId),
       known,
-      bookieCall: me?.card === "bookie" || this.phase === "results" ? this.bookieCall : null,
       moved: this.phase === "moving" ? this.moved : null,
       results: this.results,
     };
@@ -343,13 +339,6 @@ export class Game {
     this.hostages[me.room] = [...picks, id].slice(-limit);
   }
 
-  private callWinner(me: GamePlayer, team: WinningTeam): void {
-    if (me.card !== "bookie") throw new LobbyError("Only the Bookie makes a call");
-    if (this.phase !== "round" || !this.lastRound) throw new LobbyError("The Bookie calls it in the last round");
-    if (team !== "red" && team !== "blue") throw new LobbyError("Pick Red or Blue");
-    this.bookieCall = team;
-  }
-
   private startRound(at: number): void {
     this.phase = "round";
     this.moved = null;
@@ -418,11 +407,9 @@ export class Game {
     this.endsAt = null;
     const roomOf = (card: CardId) => this.players.find((p) => p.card === card)?.room;
     const winner: WinningTeam = roomOf("boss") === roomOf("busta") ? "red" : "blue";
-    const bookie = this.players.find((p) => p.card === "bookie");
     this.results = {
       winner,
       cards: this.players.map((p) => ({ id: p.id, card: p.card, team: p.team })),
-      bookie: bookie ? { id: bookie.id, call: this.bookieCall, won: this.bookieCall === winner } : null,
     };
   }
 }

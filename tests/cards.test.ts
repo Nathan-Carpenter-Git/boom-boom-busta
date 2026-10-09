@@ -34,19 +34,17 @@ function expectValidDeal(deck: Dealt[], players: number, specials: CardId[]) {
   expect(count(deck, isCrew)).toBe(players - 2 - dealtSpecials.length);
 }
 
-const ALL: CardId[] = ["bookie", "truth-teller", "liar"];
+const ALL: CardId[] = ["truth-teller", "liar"];
 
 describe("dealing", () => {
   // Players, enabled specials, then the cards that must be dealt and the team sizes (smaller first).
   it.each<[number, CardId[], Partial<Record<CardId | "crew", number>>, [number, number]]>([
     [6, [], { crew: 4 }, [3, 3]],
     [7, [], { crew: 5 }, [3, 4]],
-    [6, ["bookie"], { bookie: 1, crew: 3 }, [2, 3]],
-    [7, ["bookie"], { bookie: 1, crew: 4 }, [3, 3]],
+    [7, ["liar"], { liar: 1, crew: 4 }, [3, 4]],
     [6, ["truth-teller", "liar"], { "truth-teller": 1, liar: 1, crew: 2 }, [3, 3]],
-    [6, ALL, { bookie: 1, "truth-teller": 1, liar: 1, crew: 1 }, [2, 3]],
-    [7, ALL, { bookie: 1, "truth-teller": 1, liar: 1, crew: 2 }, [3, 3]],
-    [30, ALL, { bookie: 1, "truth-teller": 1, liar: 1, crew: 25 }, [14, 15]],
+    [7, ALL, { "truth-teller": 1, liar: 1, crew: 3 }, [3, 4]],
+    [30, ALL, { "truth-teller": 1, liar: 1, crew: 26 }, [15, 15]],
     [3, ["liar"], { liar: 1 }, [1, 2]],
   ])("%i players with %j", (players, specials, cards, teams) => {
     for (let seed = 1; seed <= 20; seed++) {
@@ -74,8 +72,8 @@ describe("dealing", () => {
   it("picks which specials to deal at random when they outnumber the seats", () => {
     const left = new Set<CardId>();
     for (let seed = 1; seed <= 50; seed++) {
-      const deck = dealCards(4, ALL, seeded(seed));
-      expectValidDeal(deck, 4, ALL);
+      const deck = dealCards(3, ALL, seeded(seed));
+      expectValidDeal(deck, 3, ALL);
       for (const id of ALL) if (!deck.some((d) => d.card === id)) left.add(id);
     }
     expect(left).toEqual(new Set(ALL));
@@ -108,10 +106,10 @@ describe("dealing", () => {
 
 describe("deal summary", () => {
   it("says what a deal gives at this player count", () => {
-    expect(dealSummary(6, ["bookie"])).toBe("6 players: Boss, Busta, Bookie, 3 Crew");
-    expect(dealSummary(7, ALL)).toBe("7 players: Boss, Busta, Bookie, Truth Teller, Liar, 2 Crew");
+    expect(dealSummary(6, ["liar"])).toBe("6 players: Boss, Busta, Liar, 3 Crew");
+    expect(dealSummary(7, ALL)).toBe("7 players: Boss, Busta, Truth Teller, Liar, 3 Crew");
     expect(dealSummary(6, [])).toBe("6 players: Boss, Busta, 4 Crew");
-    expect(dealSummary(4, ALL)).toBe("4 players: Boss, Busta, 2 random special cards of 3");
-    expect(dealSummary(3, ALL)).toBe("3 players: Boss, Busta, 1 random special card of 3");
+    expect(dealSummary(4, ALL)).toBe("4 players: Boss, Busta, Truth Teller, Liar");
+    expect(dealSummary(3, ALL)).toBe("3 players: Boss, Busta, 1 random special card of 2");
   });
 });

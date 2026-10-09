@@ -2,7 +2,7 @@
 
 import { shuffle } from "./random.js";
 
-export type Team = "blue" | "red" | "grey";
+export type Team = "blue" | "red";
 
 export interface CardDef {
   id: CardId;
@@ -15,7 +15,7 @@ export interface CardDef {
   goal: string;
 }
 
-export type CardId = "boss" | "busta" | "blue-crew" | "red-crew" | "bookie" | "truth-teller" | "liar";
+export type CardId = "boss" | "busta" | "blue-crew" | "red-crew" | "truth-teller" | "liar";
 
 /** A card as dealt to a player: the card and the team it plays for. */
 export interface Dealt {
@@ -52,13 +52,6 @@ export const CARDS: Record<CardId, CardDef> = {
     tagline: "Get the Busta to the Boss",
     goal: "Red wins if the Boss and the Busta end in the same room.",
   },
-  bookie: {
-    id: "bookie",
-    name: "The Bookie",
-    team: "grey",
-    tagline: "Bet on the winner",
-    goal: "Before the last hostage exchange, call which team wins. You win if you call it right.",
-  },
   "truth-teller": {
     id: "truth-teller",
     name: "The Truth Teller",
@@ -78,21 +71,19 @@ export const CARDS: Record<CardId, CardDef> = {
 export const TEAM_LABEL: Record<Team, string> = {
   blue: "Blue team",
   red: "Red team",
-  grey: "No team",
 };
 
 /** Special cards the host can turn on and off in the lobby, in display order. */
-export const SPECIAL_CARDS: CardId[] = ["bookie", "truth-teller", "liar"];
+export const SPECIAL_CARDS: CardId[] = ["truth-teller", "liar"];
 export const DEFAULT_SPECIALS: CardId[] = [];
 
 /** One line rule for each special card, shown in the lobby. */
 export const SPECIAL_RULES: Partial<Record<CardId, string>> = {
-  bookie: "No team. Calls the winner before the last exchange.",
   "truth-teller": "Red or Blue. Must only say true things.",
   liar: "Red or Blue. Must only say false things.",
 };
 
-const TEAM_GOAL: Record<"blue" | "red", string> = {
+const TEAM_GOAL: Record<Team, string> = {
   blue: CARDS["blue-crew"].goal,
   red: CARDS["red-crew"].goal,
 };
@@ -100,7 +91,7 @@ const TEAM_GOAL: Record<"blue" | "red", string> = {
 /** The full goal text for a dealt card: its own rule, plus the team goal for either-team cards. */
 export function cardGoal(card: CardId, team: Team): string {
   const def = CARDS[card];
-  return def.team === "either" && team !== "grey" ? `${def.goal} ${TEAM_GOAL[team]}` : def.goal;
+  return def.team === "either" ? `${def.goal} ${TEAM_GOAL[team]}` : def.goal;
 }
 
 /** The team a card plays for when its team is fixed by the card itself; undefined for either-team cards. */
@@ -126,11 +117,11 @@ export function dealCards(playerCount: number, specials: readonly CardId[], rand
     { card: "busta", team: "red" },
   ];
   const size = { blue: 1, red: 1 };
-  const smaller = (): "blue" | "red" =>
+  const smaller = (): Team =>
     size.blue === size.red ? (random() < 0.5 ? "blue" : "red") : size.blue < size.red ? "blue" : "red";
   const add = (card: CardId, team: Team) => {
     dealt.push({ card, team });
-    if (team !== "grey") size[team]++;
+    size[team]++;
   };
   const taken = shuffle(cleanSpecials(specials), random).slice(0, Math.max(0, playerCount - dealt.length));
   for (const card of taken) add(card, fixedTeam(card) ?? smaller());
@@ -141,7 +132,7 @@ export function dealCards(playerCount: number, specials: readonly CardId[], rand
   return dealt;
 }
 
-/** One short line saying what a deal at this player count gives, for example "6 players: Boss, Busta, Bookie, 3 Crew". */
+/** One short line saying what a deal at this player count gives, for example "6 players: Boss, Busta, Truth Teller, 2 Crew". */
 export function dealSummary(playerCount: number, specials: readonly CardId[]): string {
   const enabled = cleanSpecials(specials);
   const seats = Math.max(0, playerCount - 2);
