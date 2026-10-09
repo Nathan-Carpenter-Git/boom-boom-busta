@@ -1,11 +1,13 @@
 import { type FormEvent, useState } from "react";
 import { CARDS, type CardId, dealSummary, SPECIAL_CARDS, SPECIAL_RULES } from "../../shared/cards";
+import { MOVE_IDS } from "../../shared/moves";
 import type { LobbyView } from "../../shared/protocol";
 import { MAX_NAME_LENGTH } from "../../shared/rules";
 import { CardBack, CardFace, InfluenceCoin } from "./CardArt";
 import { type Connection, useConnection } from "./connection";
 import { GameScreen } from "./Game";
 import { codeFromUrl, copyText, lobbyLink } from "./lobbyLink";
+import { MoveCard } from "./MoveArt";
 import { loadName, saveName } from "./session";
 
 const params = new URLSearchParams(location.search);
@@ -14,6 +16,7 @@ const RULES_URL = "https://github.com/Nathan-Carpenter-Git/boom-boom-busta/blob/
 export function App() {
   const conn = useConnection();
   if (params.has("cards")) return <CardGallery />;
+  if (params.has("moves")) return <MoveGallery />;
   return (
     <main className="app">
       {conn.status !== "open" && <ConnectionBanner waking={conn.status === "waking"} />}
@@ -311,6 +314,19 @@ function CardGallery() {
         ),
       )}
       <CardBack className="gallery-card" />
+      {MOVE_IDS.map((id) => (
+        <MoveCard key={id} id={id} className="gallery-card" />
+      ))}
+    </main>
+  );
+}
+
+function MoveGallery() {
+  return (
+    <main className="gallery moves">
+      {MOVE_IDS.map((id) => (
+        <MoveCard key={id} id={id} className="gallery-card" />
+      ))}
     </main>
   );
 }
