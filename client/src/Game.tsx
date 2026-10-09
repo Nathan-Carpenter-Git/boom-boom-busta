@@ -233,36 +233,11 @@ function Room({
   const myVote = game.votes[me] ?? null;
   const sent = (to: string, kind: ShareKind): ShareRequest | undefined =>
     game.requests.find((r) => r.from === me && r.to === to && r.kind === kind);
-  const isBookie = card === "bookie";
-  const lastRound = game.round === game.rounds.length - 1;
 
   return (
     <div className="room">
       <MyCard card={card} team={team} onReveal={() => act({ type: "reveal" })} />
       <Requests {...props} />
-
-      {isBookie && game.phase === "round" && lastRound && (
-        <div className="panel bookie">
-          <strong>Bookie, call the winner before the last exchange.</strong>
-          <div className="pair">
-            {(["red", "blue"] as const).map((team) => (
-              <button
-                key={team}
-                type="button"
-                className={`btn ${team === "red" ? "hot" : ""} ${game.bookieCall === team ? "chosen" : ""}`}
-                onClick={() => act({ type: "bookieCall", team })}
-              >
-                {team === "red" ? "Red wins" : "Blue wins"}
-              </button>
-            ))}
-          </div>
-          <span className="hint left">
-            {game.bookieCall
-              ? `You called ${game.bookieCall === "red" ? "Red" : "Blue"}. You can change it until 0:00.`
-              : "No call means you lose."}
-          </span>
-        </div>
-      )}
 
       <div className="leader-line">
         {leader ? (
@@ -548,9 +523,8 @@ function Results({ game, me, nameOf }: ScreenProps) {
   const dealtTo = (id: string) => results.cards.find((c) => c.id === id);
   const bossId = results.cards.find((c) => c.card === "boss")?.id ?? "";
   const bossRoom = game.players.find((p) => p.id === bossId)?.room ?? 0;
-  const myTeam = dealtTo(me)?.team ?? "grey";
-  const bookie = results.bookie;
-  const iWon = myTeam === results.winner || (bookie?.id === me && bookie.won);
+  const myTeam = dealtTo(me)?.team;
+  const iWon = myTeam === results.winner;
   return (
     <div className="results">
       <div className={`winner ${results.winner}`}>
@@ -562,13 +536,6 @@ function Results({ game, me, nameOf }: ScreenProps) {
         </div>
         <div className="you-won">{iWon ? "You won." : "You lost."}</div>
       </div>
-      {bookie && (
-        <p className="goal grey">
-          <strong>{nameOf(bookie.id)}</strong> was the Bookie and{" "}
-          {bookie.call ? `called ${bookie.call === "red" ? "Red" : "Blue"}` : "never made a call"}:{" "}
-          {bookie.won ? "they win too." : "they lose."}
-        </p>
-      )}
       {([0, 1] as RoomIndex[]).map((room) => (
         <div key={room}>
           <h2>{ROOM_NAMES[room]}</h2>

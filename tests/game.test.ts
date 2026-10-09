@@ -14,14 +14,13 @@ const first = () => 0;
  */
 function makeGame(cards: (CardId | Dealt)[], influence = false) {
   const seats = cards.map((c, i) => {
-    const dealt = typeof c === "string" ? { card: c, team: fixedTeam(c) ?? "grey" } : c;
+    const dealt = typeof c === "string" ? { card: c, team: fixedTeam(c) ?? "blue" } : c;
     return { id: `p${i}`, name: `P${i}`, ...dealt, room: (i % 2) as RoomIndex };
   });
   return new Game(seats, T0, { random: first, influence });
 }
 
 const SIX: CardId[] = ["boss", "busta", "blue-crew", "red-crew", "blue-crew", "red-crew"];
-const SEVEN: CardId[] = [...SIX, "bookie"];
 
 /** Elects p2 in The Basement and p3 in The Rooftop. */
 function electLeaders(game: Game, now = T0) {
@@ -201,16 +200,15 @@ describe("sharing", () => {
   });
 });
 
-describe("the Bookie and the end", () => {
+describe("the end", () => {
   /** Plays three rounds; `sends` lists who each leader sends per round, as [Basement, Rooftop]. */
-  function play(cards: CardId[], sends: [string, string][], beforeLastExchange?: (game: Game) => void) {
+  function play(cards: CardId[], sends: [string, string][]) {
     const game = makeGame(cards);
     electLeaders(game);
     sends.forEach(([fromBasement, fromRooftop], round) => {
       expect(game.round).toBe(round);
       game.act("p2", { type: "pickHostage", playerId: fromBasement }, T0);
       game.act("p3", { type: "pickHostage", playerId: fromRooftop }, T0);
-      if (round === 2) beforeLastExchange?.(game);
       finishRound(game);
     });
     expect(game.phase).toBe("results");
@@ -228,7 +226,6 @@ describe("the Bookie and the end", () => {
     expect(roomOf(game, "p0")).toBe(roomOf(game, "p1"));
     expect(game.results?.winner).toBe("red");
     expect(game.results?.cards).toHaveLength(6);
-    expect(game.results?.bookie).toBeNull();
     expect(game.endsAt).toBeNull();
   });
 
@@ -236,26 +233,6 @@ describe("the Bookie and the end", () => {
     const game = play(SIX, [...shuffleCrew, ["p4", "p5"]]);
     expect(roomOf(game, "p0")).not.toBe(roomOf(game, "p1"));
     expect(game.results?.winner).toBe("blue");
-  });
-
-  it("the Bookie calls in the last round and wins on a right call", () => {
-    const game = play(SEVEN, [...shuffleCrew, ["p0", "p5"]], (g) => {
-      expect(() => g.act("p0", { type: "bookieCall", team: "red" }, T0)).toThrow("Only the Bookie");
-      g.act("p6", { type: "bookieCall", team: "blue" }, T0);
-      g.act("p6", { type: "bookieCall", team: "red" }, T0);
-      expect(g.view("p6", T0).bookieCall).toBe("red");
-      expect(g.view("p0", T0).bookieCall).toBeNull();
-    });
-    expect(game.results?.bookie).toEqual({ id: "p6", call: "red", won: true });
-    expect(game.view("p0", T0).bookieCall).toBe("red");
-  });
-
-  it("the Bookie can't call before the last round, and loses without a call", () => {
-    const early = makeGame(SEVEN);
-    electLeaders(early);
-    expect(() => early.act("p6", { type: "bookieCall", team: "red" }, T0)).toThrow("last round");
-    const game = play(SEVEN, [...shuffleCrew, ["p4", "p5"]]);
-    expect(game.results?.bookie).toEqual({ id: "p6", call: null, won: false });
   });
 });
 

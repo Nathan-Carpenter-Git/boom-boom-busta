@@ -555,20 +555,6 @@ h2 {
   margin-left: auto;
 }
 
-.bookie {
-  margin-top: 12px;
-  border-color: var(--muted);
-}
-.pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.btn.chosen {
-  outline: 3px solid var(--gold);
-  outline-offset: 2px;
-}
-
 .leader-line {
   margin: 14px 0 8px;
   font-size: 16px;
@@ -725,10 +711,6 @@ h2 {
 .you-won {
   margin-top: 8px;
   font-weight: 800;
-}
-.goal.grey {
-  border-color: var(--muted);
-  margin-top: 14px;
 }
 .reveal-grid {
   list-style: none;

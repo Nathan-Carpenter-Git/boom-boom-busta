@@ -82,7 +82,7 @@ async function main() {
     }
     await host.getByText(`Players ${PLAYERS}`).waitFor();
     // Turn on every special card (they all start off).
-    for (const name of ["The Bookie", "The Truth Teller", "The Liar"]) {
+    for (const name of ["The Truth Teller", "The Liar"]) {
       await host.getByRole("switch", { name }).click();
       await pages[1].locator(".specials li.on", { hasText: name }).waitFor();
     }
@@ -157,15 +157,6 @@ async function main() {
       if (round === 0) {
         const leader = (await Promise.all(pages.map((p) => p.locator(".btn.send").count()))).findIndex((n) => n > 0);
         await shot(pages[leader], "4-leader-picks");
-      }
-      if (round === 2) {
-        for (const page of pages) {
-          const call = page.getByRole("button", { name: "Red wins" });
-          if ((await call.count()) > 0) {
-            await call.click();
-            await shot(page, "5-bookie-call");
-          }
-        }
       }
       await host.locator(".moving").waitFor({ timeout: 60_000 });
       if (round === 0) await shot(host, "6-moving");

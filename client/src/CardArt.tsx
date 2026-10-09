@@ -10,7 +10,6 @@ type Colour = Team | "either";
 const PALETTE: Record<Colour, { main: string; dark: string; light: string }> = {
   blue: { main: "#2f7bff", dark: "#0f2a66", light: "#9cc3ff" },
   red: { main: "#ff4b3e", dark: "#5c1010", light: "#ffb2a8" },
-  grey: { main: "#a99fc2", dark: "#2e2940", light: "#e4def3" },
   either: { main: "#a35cff", dark: "#2d1366", light: "#d9c4ff" },
 };
 
@@ -74,32 +73,6 @@ function Match() {
   );
 }
 
-function Dice() {
-  const pips = (cx: number, cy: number, spots: [number, number][]) =>
-    spots.map(([x, y]) => <circle key={`${cx}${x}${y}`} cx={cx + x} cy={cy + y} r="7" fill={INK} stroke="none" />);
-  return (
-    <g stroke={INK} strokeWidth="5" strokeLinejoin="round">
-      <rect x="44" y="100" width="88" height="88" rx="14" fill="#fff" transform="rotate(-14 88 144)" />
-      <g transform="rotate(-14 88 144)">
-        {pips(88, 144, [
-          [-22, -22],
-          [0, 0],
-          [22, 22],
-        ])}
-      </g>
-      <rect x="118" y="120" width="88" height="88" rx="14" fill="#e4def3" transform="rotate(12 162 164)" />
-      <g transform="rotate(12 162 164)">
-        {pips(162, 164, [
-          [-22, -22],
-          [22, -22],
-          [-22, 22],
-          [22, 22],
-        ])}
-      </g>
-    </g>
-  );
-}
-
 /** A speech bubble with its tail at the bottom left, shared by the Truth Teller and the Liar. */
 function Bubble({ fill }: { fill: string }) {
   return (
@@ -146,7 +119,6 @@ const ICONS: Record<CardId, () => JSX.Element> = {
   busta: Bomb,
   "blue-crew": Shield,
   "red-crew": Match,
-  bookie: Dice,
   "truth-teller": Check,
   liar: CrossedFingers,
 };
